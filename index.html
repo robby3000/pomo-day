@@ -642,6 +642,7 @@ function onSessionEnd(skipped) {
   }
   renderStats();
   renderDots();
+  saveState();
   startTimer();
 }
 
@@ -678,6 +679,7 @@ function addTask() {
   input.focus();
   renderTasks();
   addLog('Added: "' + name + '"');
+  saveState();
 }
 
 function selectTask(id) {
@@ -701,6 +703,7 @@ function toggleDone(id, e) {
     addLog('Completed: "' + t.name + '"');
   }
   renderTasks(); renderStats();
+  saveState();
 }
 
 function deleteTask(id, e) {
@@ -712,6 +715,7 @@ function deleteTask(id, e) {
     document.getElementById('currentTaskName').classList.add('empty');
   }
   renderTasks(); renderStats();
+  saveState();
 }
 
 function renderTasks() {
@@ -767,6 +771,32 @@ function renderStats() {
   document.getElementById('statDone').textContent = state.tasks.filter(t => t.done).length;
 }
 
+function saveState() {
+  const toSave = {
+    tasks: state.tasks,
+    sessionsCompleted: state.sessionsCompleted,
+    totalFocusMin: state.totalFocusMin,
+    sessionInCycle: state.sessionInCycle,
+    log: state.log.slice(0, 50)
+  };
+  localStorage.setItem('pomoday_state', JSON.stringify(toSave));
+}
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem('pomoday_state');
+    if (!raw) return;
+    const saved = JSON.parse(raw);
+    state.tasks = saved.tasks || [];
+    state.sessionsCompleted = saved.sessionsCompleted || 0;
+    state.totalFocusMin = saved.totalFocusMin || 0;
+    state.sessionInCycle = saved.sessionInCycle || 0;
+    state.log = saved.log || [];
+  } catch (e) {
+    console.warn('Could not restore state:', e);
+  }
+}
+
 // ── NOTIFY ──
 let notifyTimer;
 function notificationsSupported() {
@@ -790,6 +820,7 @@ function escHtml(s) {
 }
 
 // ── INIT ──
+loadState();
 applyColor(COLORS.work);
 renderClock();
 renderDots();
