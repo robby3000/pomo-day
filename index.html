@@ -344,6 +344,20 @@
     width: 100%; outline: none;
   }
   .task-pomo-info { font-size: 10px; color: var(--muted); margin-top: 3px; display: flex; align-items: center; gap: 6px; }
+  .task-notes-toggle {
+    background: none; border: none; color: var(--muted);
+    font-family: 'DM Mono', monospace; font-size: 9px;
+    letter-spacing: 1px; text-transform: uppercase;
+    cursor: pointer; padding: 3px 0; margin-top: 3px;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .task-notes-area {
+    width: 100%; background: var(--surface2);
+    border: 1px solid var(--border); border-radius: 2px;
+    color: var(--text); font-family: 'DM Mono', monospace;
+    font-size: 11px; padding: 6px 8px; margin-top: 4px;
+    resize: vertical; min-height: 52px; outline: none;
+  }
   .mini-dots { display: flex; gap: 3px; }
   .mini-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--border); }
   .mini-dot.done { background: var(--work-color); }
@@ -720,7 +734,7 @@ function addTask() {
   const pomoIn = document.getElementById('pomoInput');
   const name = input.value.trim();
   if (!name) return;
-  state.tasks.push({ id: Date.now(), name, pomoEstimate: parseInt(pomoIn.value) || 2, pomoDone: 0, done: false });
+  state.tasks.push({ id: Date.now(), name, pomoEstimate: parseInt(pomoIn.value) || 2, pomoDone: 0, done: false, notes: '' });
   input.value = ''; pomoIn.value = '2';
   input.focus();
   renderTasks();
@@ -778,6 +792,20 @@ function commitEdit(id, value) {
   saveState();
 }
 
+function toggleNotes(id, e) {
+  e.stopPropagation();
+  const t = state.tasks.find(t => t.id === id);
+  if (!t) return;
+  t._notesOpen = !t._notesOpen;
+  renderTasks();
+}
+function saveNote(id, value) {
+  const t = state.tasks.find(t => t.id === id);
+  if (!t) return;
+  t.notes = value;
+  saveState();
+}
+
 function renderTasks() {
   const list = document.getElementById('taskList');
   if (state.tasks.length === 0) {
@@ -804,6 +832,13 @@ function renderTasks() {
       + '<div class="task-info">'
       + nameEl
       + '<div class="task-pomo-info"><div class="mini-dots">' + dots + '</div><span>' + t.pomoDone + '/' + t.pomoEstimate + ' pomo</span></div>'
+      + '<button class="task-notes-toggle" onclick="toggleNotes(' + t.id + ', event)">'
+      + (t.notes ? '▾ note' : '▸ note') + '</button>'
+      + (t._notesOpen
+          ? '<textarea class="task-notes-area" onchange="saveNote(' + t.id + ', this.value)"'
+            + ' onclick="event.stopPropagation()" placeholder="Add a note…">'
+            + escHtml(t.notes || '') + '</textarea>'
+          : '')
       + '</div>'
       + '<button class="task-delete" onclick="deleteTask(' + t.id + ', event)" title="Remove">×</button>'
       + '</div>';
@@ -891,7 +926,7 @@ function loadState() {
     const raw = localStorage.getItem('pomoday_state');
     if (!raw) return;
     const saved = JSON.parse(raw);
-    state.tasks = saved.tasks || [];
+    state.tasks = (saved.tasks || []).map(t => ({ notes: '', ...t }));
     state.sessionsCompleted = saved.sessionsCompleted || 0;
     state.totalFocusMin = saved.totalFocusMin || 0;
     state.sessionInCycle = saved.sessionInCycle || 0;
