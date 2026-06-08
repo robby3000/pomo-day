@@ -358,6 +358,11 @@
   }
   .task-delete:active { color: var(--accent2); }
 
+  .task-item.dragging { opacity: 0.4; }
+  .task-item.drag-over { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 6%, var(--surface)); }
+  .task-item[draggable="true"] { cursor: grab; }
+  .task-item[draggable="true"]:active { cursor: grabbing; }
+
   .empty-tasks {
     padding: 40px 20px; text-align: center;
     color: var(--muted); font-size: 11px; letter-spacing: 1px;
@@ -775,12 +780,7 @@ function renderTasks() {
     document.getElementById('taskCount').textContent = '0 tasks';
     return;
   }
-  const sorted = [...state.tasks].sort((a, b) => {
-    if (a.id === state.activeTaskId) return -1;
-    if (b.id === state.activeTaskId) return 1;
-    if (a.done !== b.done) return a.done ? 1 : -1;
-    return 0;
-  });
+  const sorted = [...state.tasks];
   list.innerHTML = sorted.map(t => {
     const dots = Array.from({length: t.pomoEstimate}, (_, i) => {
       let cls = 'mini-dot';
@@ -794,7 +794,7 @@ function renderTasks() {
         + ' onkeydown="if(event.key===\'Enter\')this.blur();if(event.key===\'Escape\'){state.editingTaskId=null;renderTasks();}"'
         + ' onclick="event.stopPropagation()">'
       : '<div class="task-name" ondblclick="editTask(' + t.id + ')">' + escHtml(t.name) + '</div>';
-    return '<div class="task-item ' + (t.done ? 'done' : '') + ' ' + (t.id === state.activeTaskId ? 'active' : '') + '" onclick="selectTask(' + t.id + ')">'
+    return '<div class="task-item ' + (t.done ? 'done' : '') + ' ' + (t.id === state.activeTaskId ? 'active' : '') + '" draggable="true" data-id="' + t.id + '" onclick="selectTask(' + t.id + ')">'
       + '<div class="task-check" onclick="toggleDone(' + t.id + ', event)">' + (t.done ? '✓' : '') + '</div>'
       + '<div class="task-info">'
       + nameEl
@@ -807,8 +807,45 @@ function renderTasks() {
     const inp = list.querySelector('.task-name-edit');
     if (inp) { inp.focus(); inp.select(); }
   }
+  wireDrag();
   const done = state.tasks.filter(t => t.done).length;
   document.getElementById('taskCount').textContent = done + '/' + state.tasks.length + ' done';
+}
+
+function wireDrag() {
+  const items = document.querySelectorAll('#taskList .task-item');
+  let dragSrcId = null;
+  items.forEach(el => {
+    el.addEventListener('dragstart', e => {
+      dragSrcId = parseInt(el.dataset.id);
+      e.dataTransfer.effectAllowed = 'move';
+      el.classList.add('dragging');
+    });
+    el.addEventListener('dragend', () => {
+      el.classList.remove('dragging');
+    });
+    el.addEventListener('dragover', e => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      el.classList.add('drag-over');
+    });
+    el.addEventListener('dragleave', () => {
+      el.classList.remove('drag-over');
+    });
+    el.addEventListener('drop', e => {
+      e.preventDefault();
+      el.classList.remove('drag-over');
+      const targetId = parseInt(el.dataset.id);
+      if (dragSrcId === targetId) return;
+      const srcIdx = state.tasks.findIndex(t => t.id === dragSrcId);
+      const tgtIdx = state.tasks.findIndex(t => t.id === targetId);
+      if (srcIdx === -1 || tgtIdx === -1) return;
+      const [moved] = state.tasks.splice(srcIdx, 1);
+      state.tasks.splice(tgtIdx, 0, moved);
+      saveState();
+      renderTasks();
+    });
+  });
 }
 
 // ── LOG ──
