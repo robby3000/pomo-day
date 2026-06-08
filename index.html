@@ -768,6 +768,9 @@ function renderStats() {
 
 // ── NOTIFY ──
 let notifyTimer;
+function notificationsSupported() {
+  return typeof Notification !== 'undefined';
+}
 function notify(title, body) {
   const el = document.getElementById('notify');
   document.getElementById('notifyTitle').textContent = title;
@@ -775,8 +778,10 @@ function notify(title, body) {
   el.classList.add('show');
   clearTimeout(notifyTimer);
   notifyTimer = setTimeout(() => el.classList.remove('show'), 4000);
-  if (Notification.permission === 'granted') new Notification(title, { body });
-  else if (Notification.permission !== 'denied') Notification.requestPermission();
+  if (notificationsSupported()) {
+    if (Notification.permission === 'granted') new Notification(title, { body });
+    else if (Notification.permission !== 'denied') Notification.requestPermission();
+  }
 }
 
 function escHtml(s) {
@@ -790,7 +795,9 @@ renderDots();
 renderTasks();
 renderLog();
 renderStats();
-if (Notification.permission === 'default') Notification.requestPermission();
+if (notificationsSupported() && Notification.permission === 'default') {
+  Notification.requestPermission();
+}
 </script>
 </body>
 </html>
