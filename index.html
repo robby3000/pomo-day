@@ -391,6 +391,26 @@
   .notify.show { transform: translateX(-50%) translateY(0); opacity: 1; }
   .notify-title { font-family: 'Bebas Neue', sans-serif; font-size: 18px; letter-spacing: 2px; color: var(--mode-color); }
 
+  .day-banner {
+    position: fixed; bottom: 70px; left: 50%; transform: translateX(-50%) translateY(10px);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent2);
+    border-radius: var(--radius);
+    padding: 10px 14px;
+    font-size: 11px; color: var(--text);
+    display: flex; align-items: center; gap: 10px;
+    opacity: 0; transition: all .3s;
+    z-index: 99; pointer-events: none;
+    width: calc(100% - 32px); max-width: 340px;
+  }
+  .day-banner.show { transform: translateX(-50%) translateY(0); opacity: 1; pointer-events: auto; }
+  .day-banner-close {
+    background: none; border: none; color: var(--muted);
+    cursor: pointer; font-size: 16px; flex-shrink: 0;
+    -webkit-tap-highlight-color: transparent;
+  }
+
   /* DESKTOP: side-by-side layout */
   @media (min-width: 700px) {
     body {
@@ -513,6 +533,11 @@
   </button>
 </nav>
 
+<div class="day-banner" id="dayBanner">
+  <span class="day-banner-text"></span>
+  <button class="day-banner-close" onclick="this.parentElement.classList.remove('show')">×</button>
+</div>
+
 <div class="notify" id="notify">
   <div class="notify-title" id="notifyTitle">Break time!</div>
   <div id="notifyBody">Good work. Take a breather.</div>
@@ -532,7 +557,8 @@ let state = {
   totalFocusMin: 0,
   tasks: [],
   activeTaskId: null,
-  log: []
+  log: [],
+  lastDate: null
 };
 
 let timer = null;
@@ -777,7 +803,8 @@ function saveState() {
     sessionsCompleted: state.sessionsCompleted,
     totalFocusMin: state.totalFocusMin,
     sessionInCycle: state.sessionInCycle,
-    log: state.log.slice(0, 50)
+    log: state.log.slice(0, 50),
+    lastDate: state.lastDate
   };
   localStorage.setItem('pomoday_state', JSON.stringify(toSave));
 }
@@ -792,9 +819,36 @@ function loadState() {
     state.totalFocusMin = saved.totalFocusMin || 0;
     state.sessionInCycle = saved.sessionInCycle || 0;
     state.log = saved.log || [];
+    state.lastDate = saved.lastDate || null;
   } catch (e) {
     console.warn('Could not restore state:', e);
   }
+}
+
+function checkDailyReset() {
+  const today = new Date().toDateString();
+  if (!state.lastDate) { state.lastDate = today; return; }
+  if (state.lastDate === today) return;
+  const donePrev = state.tasks.filter(t => t.done).length;
+  const sessPrev = state.sessionsCompleted;
+  state.tasks = state.tasks.filter(t => !t.done);
+  state.sessionsCompleted = 0;
+  state.totalFocusMin = 0;
+  state.sessionInCycle = 0;
+  state.log = [];
+  state.lastDate = today;
+  saveState();
+  showDayBanner(donePrev, sessPrev);
+}
+
+function showDayBanner(doneTasks, sessions) {
+  const el = document.getElementById('dayBanner');
+  if (!el) return;
+  el.querySelector('.day-banner-text').textContent =
+    'Yesterday: ' + doneTasks + ' task' + (doneTasks !== 1 ? 's' : '') +
+    ' done, ' + sessions + ' session' + (sessions !== 1 ? 's' : '') + ' completed.';
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 6000);
 }
 
 // ── NOTIFY ──
@@ -821,6 +875,7 @@ function escHtml(s) {
 
 // ── INIT ──
 loadState();
+checkDailyReset();
 applyColor(COLORS.work);
 renderClock();
 renderDots();
