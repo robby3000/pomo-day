@@ -402,6 +402,16 @@
   .log-time { color: var(--mode-color); flex-shrink: 0; }
   .log-empty { font-size: 10px; color: var(--surface2); font-style: italic; }
 
+  .history-section { border-top: 1px solid var(--border); flex-shrink: 0; }
+  .history-chart {
+    display: flex; align-items: flex-end; gap: 4px;
+    padding: 8px 16px 4px; height: 64px;
+  }
+  .hbar-col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; }
+  .hbar-fill { width: 100%; background: var(--work-color); border-radius: 2px 2px 0 0; min-height: 2px; transition: height .3s; }
+  .hbar-count { font-size: 8px; color: var(--muted); margin-top: 2px; height: 10px; }
+  .hbar-label { font-size: 8px; color: var(--muted); letter-spacing: 1px; }
+
   /* NOTIFY */
   .notify {
     position: fixed; top: 12px; left: 50%; transform: translateX(-50%) translateY(-6px);
@@ -546,6 +556,13 @@
 
   <div class="task-list" id="taskList"></div>
 
+  <div class="history-section">
+    <div class="panel-header" style="padding:10px 20px 8px;">
+      <div class="panel-title" style="font-size:13px;">7-Day History</div>
+    </div>
+    <div class="history-chart" id="historyChart"></div>
+  </div>
+
   <div class="log-panel">
     <div class="log-header">Activity Log</div>
     <div id="logEntries"><div class="log-empty">No activity yet</div></div>
@@ -589,7 +606,8 @@ let state = {
   log: [],
   lastDate: null,
   editingTaskId: null,
-  soundEnabled: true
+  soundEnabled: true,
+  history: {}
 };
 
 let timer = null;
@@ -676,9 +694,10 @@ function onSessionEnd(skipped) {
   if (!skipped && state.mode === 'work') {
     playBeep(880, 0.6);
     state.sessionsCompleted++;
-    state.sessionsCompleted++;
     state.sessionInCycle++;
     state.totalFocusMin += getSettings().work;
+    const today = new Date().toDateString();
+    state.history[today] = (state.history[today] || 0) + 1;
     addLog('Completed work session');
     if (state.activeTaskId) {
       const t = state.tasks.find(t => t.id === state.activeTaskId);
@@ -702,6 +721,7 @@ function onSessionEnd(skipped) {
   }
   renderStats();
   renderDots();
+  renderHistory();
   saveState();
   startTimer();
 }
@@ -908,6 +928,28 @@ function renderStats() {
   document.getElementById('statDone').textContent = state.tasks.filter(t => t.done).length;
 }
 
+function renderHistory() {
+  const el = document.getElementById('historyChart');
+  if (!el) return;
+  const days = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    days.push(d);
+  }
+  const max = Math.max(1, ...days.map(d => state.history[d.toDateString()] || 0));
+  el.innerHTML = days.map(d => {
+    const key = d.toDateString();
+    const count = state.history[key] || 0;
+    const pct = Math.round((count / max) * 100);
+    const label = d.toLocaleDateString([], { weekday: 'short' });
+    return '<div class="hbar-col">'
+      + '<div class="hbar-fill" style="height:' + pct + '%"></div>'
+      + '<div class="hbar-count">' + (count || '') + '</div>'
+      + '<div class="hbar-label">' + label + '</div>'
+      + '</div>';
+  }).join('');
+}
+
 function saveState() {
   const toSave = {
     tasks: state.tasks,
@@ -916,7 +958,8 @@ function saveState() {
     sessionInCycle: state.sessionInCycle,
     log: state.log.slice(0, 50),
     lastDate: state.lastDate,
-    soundEnabled: state.soundEnabled
+    soundEnabled: state.soundEnabled,
+    history: state.history
   };
   localStorage.setItem('pomoday_state', JSON.stringify(toSave));
 }
@@ -933,6 +976,7 @@ function loadState() {
     state.log = saved.log || [];
     state.lastDate = saved.lastDate || null;
     state.soundEnabled = saved.soundEnabled !== undefined ? saved.soundEnabled : true;
+    state.history = saved.history || {};
   } catch (e) {
     console.warn('Could not restore state:', e);
   }
@@ -1015,6 +1059,7 @@ renderDots();
 renderTasks();
 renderLog();
 renderStats();
+renderHistory();
 document.getElementById('btnSound').style.opacity = state.soundEnabled ? '1' : '0.35';
 if (notificationsSupported() && Notification.permission === 'default') {
   Notification.requestPermission();
