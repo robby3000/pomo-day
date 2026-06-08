@@ -491,6 +491,7 @@
     <button class="btn btn-ghost" onclick="resetTimer()">↺ Reset</button>
     <button class="btn btn-primary" id="btnStart" onclick="toggleTimer()">START</button>
     <button class="btn btn-ghost" onclick="skipSession()">Skip →</button>
+    <button class="btn btn-ghost" id="btnSound" onclick="toggleSound()" title="Toggle sound">♪</button>
   </div>
 
   <div class="current-task-block">
@@ -573,7 +574,8 @@ let state = {
   activeTaskId: null,
   log: [],
   lastDate: null,
-  editingTaskId: null
+  editingTaskId: null,
+  soundEnabled: true
 };
 
 let timer = null;
@@ -658,6 +660,8 @@ function tick() {
 function onSessionEnd(skipped) {
   pauseTimer();
   if (!skipped && state.mode === 'work') {
+    playBeep(880, 0.6);
+    state.sessionsCompleted++;
     state.sessionsCompleted++;
     state.sessionInCycle++;
     state.totalFocusMin += getSettings().work;
@@ -675,6 +679,7 @@ function onSessionEnd(skipped) {
       setMode('short');
     }
   } else if (!skipped && (state.mode === 'short' || state.mode === 'long')) {
+    playBeep(660, 0.4);
     addLog('Finished ' + LABELS[state.mode]);
     notify('Back to work!', "Break over. Let's go again.");
     setMode('work');
@@ -875,7 +880,8 @@ function saveState() {
     totalFocusMin: state.totalFocusMin,
     sessionInCycle: state.sessionInCycle,
     log: state.log.slice(0, 50),
-    lastDate: state.lastDate
+    lastDate: state.lastDate,
+    soundEnabled: state.soundEnabled
   };
   localStorage.setItem('pomoday_state', JSON.stringify(toSave));
 }
@@ -891,6 +897,7 @@ function loadState() {
     state.sessionInCycle = saved.sessionInCycle || 0;
     state.log = saved.log || [];
     state.lastDate = saved.lastDate || null;
+    state.soundEnabled = saved.soundEnabled !== undefined ? saved.soundEnabled : true;
   } catch (e) {
     console.warn('Could not restore state:', e);
   }
@@ -927,6 +934,26 @@ let notifyTimer;
 function notificationsSupported() {
   return typeof Notification !== 'undefined';
 }
+function playBeep(freq, duration) {
+  if (!state.soundEnabled) return;
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.frequency.value = freq;
+    osc.type = 'sine';
+    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + duration);
+  } catch(e) {}
+}
+function toggleSound() {
+  state.soundEnabled = !state.soundEnabled;
+  document.getElementById('btnSound').style.opacity = state.soundEnabled ? '1' : '0.35';
+  saveState();
+}
 function notify(title, body) {
   const el = document.getElementById('notify');
   document.getElementById('notifyTitle').textContent = title;
@@ -953,6 +980,7 @@ renderDots();
 renderTasks();
 renderLog();
 renderStats();
+document.getElementById('btnSound').style.opacity = state.soundEnabled ? '1' : '0.35';
 if (notificationsSupported() && Notification.permission === 'default') {
   Notification.requestPermission();
 }
