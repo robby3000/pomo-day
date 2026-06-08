@@ -11,5 +11,9 @@ Thumbs.db
 
 # Node modules (if using npm later)
 node_modules/
-docs/roadmap.md
-AGENTS.md
+
+# Devin CLI configuration
+.devin/
+
+# Documentation (optional - remove if you want to commit docs)
+# docs/
