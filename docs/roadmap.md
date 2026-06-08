@@ -96,7 +96,7 @@ renderStats();
 
 **Fix the responsive viewport dimensions** - currently the right edge of the Task area is cut off when in desktop view.
 
-**Task ordering** — drag-and-drop reordering of tasks. Use the native HTML5 draggable API or a small library like SortableJS. The current sort-by-active is automatic; manual ordering gives the user more control for priority stacking.
+**Task ordering** — drag-and-drop reordering of tasks. Use the native HTML5 draggable API. The current sort-by-active is automatic; manual ordering gives the user more control for priority stacking.
 
 **Daily reset** — store the date of the last session alongside state. On load, if the date has changed, archive completed tasks and reset session counters. Show a "Yesterday you completed X tasks" banner before clearing.
 
