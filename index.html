@@ -334,6 +334,15 @@
 
   .task-info { flex: 1; min-width: 0; }
   .task-name { font-size: 13px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .task-name-edit {
+    font-family: 'DM Mono', monospace;
+    font-size: 13px; color: var(--text);
+    background: var(--surface2);
+    border: 1px solid var(--accent);
+    border-radius: 2px;
+    padding: 1px 4px;
+    width: 100%; outline: none;
+  }
   .task-pomo-info { font-size: 10px; color: var(--muted); margin-top: 3px; display: flex; align-items: center; gap: 6px; }
   .mini-dots { display: flex; gap: 3px; }
   .mini-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--border); }
@@ -558,7 +567,8 @@ let state = {
   tasks: [],
   activeTaskId: null,
   log: [],
-  lastDate: null
+  lastDate: null,
+  editingTaskId: null
 };
 
 let timer = null;
@@ -744,6 +754,20 @@ function deleteTask(id, e) {
   saveState();
 }
 
+function editTask(id) {
+  state.editingTaskId = state.editingTaskId === id ? null : id;
+  renderTasks();
+}
+function commitEdit(id, value) {
+  const t = state.tasks.find(t => t.id === id);
+  if (!t) return;
+  const trimmed = value.trim();
+  if (trimmed) t.name = trimmed;
+  state.editingTaskId = null;
+  renderTasks();
+  saveState();
+}
+
 function renderTasks() {
   const list = document.getElementById('taskList');
   if (state.tasks.length === 0) {
@@ -764,15 +788,25 @@ function renderTasks() {
       else if (i === t.pomoDone && !t.done && t.id === state.activeTaskId && state.mode === 'work') cls += ' current';
       return '<div class="' + cls + '"></div>';
     }).join('');
+    const nameEl = t.id === state.editingTaskId
+      ? '<input class="task-name-edit" value="' + escHtml(t.name) + '"'
+        + ' onblur="commitEdit(' + t.id + ', this.value)"'
+        + ' onkeydown="if(event.key===\'Enter\')this.blur();if(event.key===\'Escape\'){state.editingTaskId=null;renderTasks();}"'
+        + ' onclick="event.stopPropagation()">'
+      : '<div class="task-name" ondblclick="editTask(' + t.id + ')">' + escHtml(t.name) + '</div>';
     return '<div class="task-item ' + (t.done ? 'done' : '') + ' ' + (t.id === state.activeTaskId ? 'active' : '') + '" onclick="selectTask(' + t.id + ')">'
       + '<div class="task-check" onclick="toggleDone(' + t.id + ', event)">' + (t.done ? '✓' : '') + '</div>'
       + '<div class="task-info">'
-      + '<div class="task-name">' + escHtml(t.name) + '</div>'
+      + nameEl
       + '<div class="task-pomo-info"><div class="mini-dots">' + dots + '</div><span>' + t.pomoDone + '/' + t.pomoEstimate + ' pomo</span></div>'
       + '</div>'
       + '<button class="task-delete" onclick="deleteTask(' + t.id + ', event)" title="Remove">×</button>'
       + '</div>';
   }).join('');
+  if (state.editingTaskId !== null) {
+    const inp = list.querySelector('.task-name-edit');
+    if (inp) { inp.focus(); inp.select(); }
+  }
   const done = state.tasks.filter(t => t.done).length;
   document.getElementById('taskCount').textContent = done + '/' + state.tasks.length + ' done';
 }
