@@ -11,3 +11,5 @@ Thumbs.db
 
 # Node modules (if using npm later)
 node_modules/
+docs/roadmap.md
+AGENTS.md
