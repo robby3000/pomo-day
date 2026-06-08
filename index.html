@@ -592,6 +592,16 @@
 <script>
 const COLORS = { work: '#e8ff47', short: '#47d9ff', long: '#b47fff' };
 const LABELS = { work: 'Work', short: 'Short Break', long: 'Long Break' };
+const BREAK_SUGGESTIONS = [
+  'stretch for 2 minutes',
+  'drink a glass of water',
+  'close your eyes for 20 seconds',
+  'stand up and walk around',
+  'look at something 20 feet away',
+  'take 5 deep breaths',
+  'roll your shoulders back'
+];
+let _breakSugIdx = 0;
 
 let state = {
   mode: 'work',
@@ -648,11 +658,29 @@ function setMode(mode) {
   document.querySelectorAll('.mode-tab').forEach(t => t.classList.toggle('active', t.dataset.mode === mode));
   document.getElementById('modeLabel').textContent = LABELS[mode];
   applyColor(COLORS[mode]);
+  if (mode === 'short' || mode === 'long') {
+    showBreakSuggestion();
+  } else if (mode === 'work') {
+    const el = document.getElementById('currentTaskName');
+    if (el) {
+      const t = state.tasks.find(t => t.id === state.activeTaskId);
+      if (state.activeTaskId && t) { el.textContent = t.name; el.classList.remove('empty'); }
+      else { el.textContent = '— no task selected —'; el.classList.add('empty'); }
+    }
+  }
   renderClock();
 }
 
 function applyColor(color) {
   document.documentElement.style.setProperty('--mode-color', color);
+}
+
+function showBreakSuggestion() {
+  const el = document.getElementById('currentTaskName');
+  if (!el) return;
+  el.textContent = BREAK_SUGGESTIONS[_breakSugIdx % BREAK_SUGGESTIONS.length];
+  el.classList.add('empty');
+  _breakSugIdx++;
 }
 
 document.querySelectorAll('.mode-tab').forEach(tab => {
