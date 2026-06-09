@@ -1041,7 +1041,6 @@ function checkDailyReset() {
   const today = new Date().toDateString();
   if (!state.lastDate) { state.lastDate = today; return; }
   if (state.lastDate === today) return;
-  state.lastDate = today;
   updateNewDayButton();
 }
 
