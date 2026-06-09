@@ -49,6 +49,7 @@
     border-bottom: 1px solid var(--border);
     flex-shrink: 0;
     position: relative;
+    gap: 16px;
   }
   header::after {
     content: '';
@@ -71,6 +72,28 @@
     font-size: 10px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase;
   }
   .header-stats strong { color: var(--text); font-size: 13px; display: block; margin-top: 1px; }
+
+  .btn-new-day {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 6px 12px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: all .15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn-new-day:hover {
+    border-color: var(--accent);
+    color: var(--text);
+  }
+  .btn-new-day:active {
+    background: var(--surface2);
+  }
 
   /* ── TAB NAV (mobile bottom nav) ── */
   .tab-nav {
@@ -457,7 +480,7 @@
       grid-template-rows: auto 1fr;
       overflow: hidden;
     }
-    header { grid-column: 1 / -1; }
+    header { grid-column: 1 / -1; gap: 24px; }
     .tab-nav { display: none; }
 
     .page { display: flex !important; }
@@ -486,6 +509,7 @@
     <div>Focus<strong id="statFocus">0m</strong></div>
     <div>Done<strong id="statDone">0</strong></div>
   </div>
+  <button class="btn-new-day" id="btnNewDay" onclick="startNewDay()">New Day</button>
 </header>
 
 <!-- TIMER PAGE -->
@@ -751,6 +775,7 @@ function onSessionEnd(skipped) {
   renderDots();
   renderHistory();
   saveState();
+  updateNewDayButton();
   startTimer();
 }
 
@@ -1016,8 +1041,27 @@ function checkDailyReset() {
   const today = new Date().toDateString();
   if (!state.lastDate) { state.lastDate = today; return; }
   if (state.lastDate === today) return;
+  state.lastDate = today;
+  updateNewDayButton();
+}
+
+function startNewDay() {
+  const today = new Date().toDateString();
   const donePrev = state.tasks.filter(t => t.done).length;
-  const sessPrev = state.sessionsCompleted;
+  let sessPrev = state.sessionsCompleted;
+
+  if (state.running && state.mode === 'work') {
+    const elapsedMin = Math.floor((state.totalSeconds - state.seconds) / 60);
+    if (elapsedMin > 0) {
+      state.totalFocusMin += elapsedMin;
+      sessPrev++;
+      const prevDate = state.lastDate || today;
+      state.history[prevDate] = (state.history[prevDate] || 0) + 1;
+      addLog('Credited partial session to previous day');
+    }
+    pauseTimer();
+  }
+
   state.tasks = state.tasks.filter(t => !t.done);
   state.sessionsCompleted = 0;
   state.totalFocusMin = 0;
@@ -1026,6 +1070,22 @@ function checkDailyReset() {
   state.lastDate = today;
   saveState();
   showDayBanner(donePrev, sessPrev);
+  renderStats();
+  renderHistory();
+  renderLog();
+  renderTasks();
+  updateNewDayButton();
+}
+
+function updateNewDayButton() {
+  const btn = document.getElementById('btnNewDay');
+  if (!btn) return;
+  const today = new Date().toDateString();
+  if (state.lastDate === today) {
+    btn.style.display = 'none';
+  } else {
+    btn.style.display = 'block';
+  }
 }
 
 function showDayBanner(doneTasks, sessions) {
@@ -1091,6 +1151,7 @@ renderLog();
 renderStats();
 renderHistory();
 document.getElementById('btnSound').style.opacity = state.soundEnabled ? '1' : '0.35';
+updateNewDayButton();
 if (notificationsSupported() && Notification.permission === 'default') {
   Notification.requestPermission();
 }
