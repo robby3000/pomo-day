@@ -714,18 +714,22 @@ function setMode(mode) {
   if (mode === 'short' || mode === 'long') {
     showBreakSuggestion();
   } else if (mode === 'work') {
-    const el = document.getElementById('currentTaskName');
-    if (el) {
-      const t = state.tasks.find(t => t.id === state.activeTaskId);
-      if (state.activeTaskId && t) { el.textContent = t.name; el.classList.remove('empty'); }
-      else { el.textContent = '— no task selected —'; el.classList.add('empty'); }
-    }
+    renderCurrentTask();
   }
   renderClock();
 }
 
 function applyColor(color) {
   document.documentElement.style.setProperty('--mode-color', color);
+}
+
+function renderCurrentTask() {
+  const el = document.getElementById('currentTaskName');
+  if (!el) return;
+  if (state.mode === 'short' || state.mode === 'long') return;
+  const t = state.tasks.find(t => t.id === state.activeTaskId);
+  if (state.activeTaskId && t) { el.textContent = t.name; el.classList.remove('empty'); }
+  else { el.textContent = '— no task selected —'; el.classList.add('empty'); }
 }
 
 function showBreakSuggestion() {
@@ -874,10 +878,7 @@ function addTask() {
 function selectTask(id) {
   state.activeTaskId = state.activeTaskId === id ? null : id;
   renderTasks();
-  const t = state.tasks.find(t => t.id === id);
-  const el = document.getElementById('currentTaskName');
-  if (state.activeTaskId && t) { el.textContent = t.name; el.classList.remove('empty'); }
-  else { el.textContent = '— no task selected —'; el.classList.add('empty'); }
+  renderCurrentTask();
 }
 
 function toggleDone(id, e) {
@@ -887,25 +888,19 @@ function toggleDone(id, e) {
   t.done = !t.done;
   if (t.done) {
     addLog('Completed: "' + t.name + '"');
-    if (state.activeTaskId === id) {
-      state.activeTaskId = null;
-      document.getElementById('currentTaskName').textContent = '— no task selected —';
-      document.getElementById('currentTaskName').classList.add('empty');
-    }
+    if (state.activeTaskId === id) state.activeTaskId = null;
   }
   renderTasks(); renderStats();
+  renderCurrentTask();
   saveState();
 }
 
 function deleteTask(id, e) {
   e.stopPropagation();
   state.tasks = state.tasks.filter(t => t.id !== id);
-  if (state.activeTaskId === id) {
-    state.activeTaskId = null;
-    document.getElementById('currentTaskName').textContent = '— no task selected —';
-    document.getElementById('currentTaskName').classList.add('empty');
-  }
+  if (state.activeTaskId === id) state.activeTaskId = null;
   renderTasks(); renderStats();
+  renderCurrentTask();
   saveState();
 }
 
