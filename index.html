@@ -671,6 +671,8 @@ let state = {
 };
 
 let timer = null;
+let timerStartedAt = null;
+let secondsAtStart = null;
 const CIRCUMFERENCE = 2 * Math.PI * 122;
 
 // ── TAB SWITCH ──
@@ -742,13 +744,17 @@ function toggleTimer() {
   state.running ? pauseTimer() : startTimer();
 }
 function startTimer() {
+  timerStartedAt = Date.now();
+  secondsAtStart = state.seconds;
   state.running = true;
   document.getElementById('btnStart').textContent = 'PAUSE';
-  timer = setInterval(tick, 1000);
+  timer = setInterval(tick, 500);
 }
 function pauseTimer() {
   state.running = false;
   clearInterval(timer);
+  timerStartedAt = null;
+  secondsAtStart = null;
   document.getElementById('btnStart').textContent = 'START';
 }
 function resetTimer() {
@@ -764,11 +770,17 @@ function skipSession() {
   onSessionEnd(true);
 }
 function tick() {
-  if (state.seconds <= 0) { onSessionEnd(false); return; }
-  state.seconds--;
+  const elapsed = Math.floor((Date.now() - timerStartedAt) / 1000);
+  const remaining = secondsAtStart - elapsed;
+  if (remaining <= 0) { onSessionEnd(false); return; }
   if (state.mode === 'work' && state.activeTaskId !== null) {
-    state.sessionTaskTime[state.activeTaskId] = (state.sessionTaskTime[state.activeTaskId] || 0) + 1;
+    const prevRemaining = state.seconds;
+    const secondsElapsedThisTick = prevRemaining - remaining;
+    if (secondsElapsedThisTick > 0) {
+      state.sessionTaskTime[state.activeTaskId] = (state.sessionTaskTime[state.activeTaskId] || 0) + secondsElapsedThisTick;
+    }
   }
+  state.seconds = remaining;
   renderClock();
 }
 function onSessionEnd(skipped) {
