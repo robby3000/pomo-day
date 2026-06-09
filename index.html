@@ -302,17 +302,35 @@
   }
   .add-task-input:focus { border-color: var(--accent); }
   .add-task-input::placeholder { color: var(--muted); }
-  .pomo-count-input {
-    width: 42px; text-align: center;
+  .pomo-stepper {
+    display: flex; align-items: center;
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    padding: 9px 4px;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .pomo-step-btn {
+    background: none; border: none;
+    color: var(--muted);
+    font-size: 16px; line-height: 1;
+    padding: 0 8px; height: 38px;
+    cursor: pointer;
+    transition: color .15s, background .15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .pomo-step-btn:hover { color: var(--text); background: var(--surface2); }
+  .pomo-count-input {
+    width: 28px; text-align: center;
+    background: none;
+    border: none;
+    padding: 0;
     font-family: 'DM Mono', monospace;
     font-size: 13px; color: var(--text);
     outline: none;
   }
-  .pomo-count-input::-webkit-inner-spin-button { opacity: 0; }
+  .pomo-count-input::-webkit-inner-spin-button { display: none; }
+  .pomo-count-input[type=number] { -moz-appearance: textfield; }
 
   .task-list {
     flex: 1; overflow-y: auto;
@@ -574,7 +592,11 @@
   <div class="add-task-row">
     <input class="add-task-input" id="taskInput" type="text" placeholder="Add a task…" maxlength="60"
       onkeydown="if(event.key==='Enter') addTask()">
-    <input class="pomo-count-input" id="pomoInput" type="number" min="1" max="20" value="2" title="Pomodoros">
+    <div class="pomo-stepper">
+      <button class="pomo-step-btn" onclick="stepPomo(-1)" tabindex="-1">−</button>
+      <input class="pomo-count-input" id="pomoInput" type="number" step="1" min="1" max="20" value="1" title="Pomodoros">
+      <button class="pomo-step-btn" onclick="stepPomo(1)" tabindex="-1">+</button>
+    </div>
     <button class="btn btn-primary" style="padding:9px 14px;font-size:11px;" onclick="addTask()">+</button>
   </div>
 
@@ -814,6 +836,12 @@ function renderDots() {
 }
 
 // ── TASKS ──
+function stepPomo(delta) {
+  const inp = document.getElementById('pomoInput');
+  const val = Math.min(20, Math.max(1, (parseInt(inp.value) || 1) + delta));
+  inp.value = val;
+}
+
 function addTask() {
   const input = document.getElementById('taskInput');
   const pomoIn = document.getElementById('pomoInput');
