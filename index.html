@@ -698,6 +698,7 @@ function updateSettings() {
     state.totalSeconds = s[state.mode] * 60;
     state.seconds = state.totalSeconds;
     renderClock();
+    saveState();
   }
 }
 
@@ -798,7 +799,7 @@ function onSessionEnd(skipped) {
     const today = new Date().toDateString();
     state.history[today] = (state.history[today] || 0) + 1;
     addLog('Completed work session');
-    const POMO_THRESHOLD_SEC = 15 * 60;
+    const POMO_THRESHOLD_SEC = Math.floor(getSettings().work * 60 * 0.6);
     let pomoCredited = false;
     Object.entries(state.sessionTaskTime).forEach(([idStr, secs]) => {
       if (secs >= POMO_THRESHOLD_SEC) {
@@ -1067,6 +1068,7 @@ function renderHistory() {
 }
 
 function saveState() {
+  const s = getSettings();
   const toSave = {
     tasks: state.tasks.map(({ _notesOpen, ...t }) => t),
     sessionsCompleted: state.sessionsCompleted,
@@ -1075,7 +1077,8 @@ function saveState() {
     log: state.log.slice(0, 50),
     lastDate: state.lastDate,
     soundEnabled: state.soundEnabled,
-    history: state.history
+    history: state.history,
+    settings: { work: s.work, short: s.short, long: s.long }
   };
   localStorage.setItem('pomoday_state', JSON.stringify(toSave));
 }
@@ -1093,6 +1096,11 @@ function loadState() {
     state.lastDate = saved.lastDate || null;
     state.soundEnabled = saved.soundEnabled !== undefined ? saved.soundEnabled : true;
     state.history = saved.history || {};
+    if (saved.settings) {
+      document.getElementById('setWork').value = saved.settings.work || 25;
+      document.getElementById('setShort').value = saved.settings.short || 5;
+      document.getElementById('setLong').value = saved.settings.long || 15;
+    }
   } catch (e) {
     console.warn('Could not restore state:', e);
   }
