@@ -641,7 +641,8 @@ let state = {
   lastDate: null,
   editingTaskId: null,
   soundEnabled: true,
-  history: {}
+  history: {},
+  sessionTaskTime: {}
 };
 
 let timer = null;
@@ -730,6 +731,7 @@ function resetTimer() {
   const s = getSettings();
   state.seconds = s[state.mode] * 60;
   state.totalSeconds = state.seconds;
+  state.sessionTaskTime = {};
   renderClock();
 }
 function skipSession() {
@@ -739,6 +741,9 @@ function skipSession() {
 function tick() {
   if (state.seconds <= 0) { onSessionEnd(false); return; }
   state.seconds--;
+  if (state.mode === 'work' && state.activeTaskId !== null) {
+    state.sessionTaskTime[state.activeTaskId] = (state.sessionTaskTime[state.activeTaskId] || 0) + 1;
+  }
   renderClock();
 }
 function onSessionEnd(skipped) {
@@ -751,10 +756,16 @@ function onSessionEnd(skipped) {
     const today = new Date().toDateString();
     state.history[today] = (state.history[today] || 0) + 1;
     addLog('Completed work session');
-    if (state.activeTaskId) {
-      const t = state.tasks.find(t => t.id === state.activeTaskId);
-      if (t && t.pomoDone < t.pomoEstimate) { t.pomoDone++; renderTasks(); }
-    }
+    const POMO_THRESHOLD_SEC = 15 * 60;
+    let pomoCredited = false;
+    Object.entries(state.sessionTaskTime).forEach(([idStr, secs]) => {
+      if (secs >= POMO_THRESHOLD_SEC) {
+        const t = state.tasks.find(t => t.id === parseInt(idStr));
+        if (t && t.pomoDone < t.pomoEstimate) { t.pomoDone++; pomoCredited = true; }
+      }
+    });
+    if (pomoCredited) renderTasks();
+    state.sessionTaskTime = {};
     if (state.sessionInCycle >= 4) {
       state.sessionInCycle = 0;
       notify('Long Break!', 'You finished 4 sessions. Enjoy a long rest.');
@@ -769,6 +780,7 @@ function onSessionEnd(skipped) {
     notify('Back to work!', "Break over. Let's go again.");
     setMode('work');
   } else {
+    state.sessionTaskTime = {};
     if (state.mode === 'work') setMode('short'); else setMode('work');
   }
   renderStats();
