@@ -804,11 +804,13 @@ function toggleDone(id, e) {
   const t = state.tasks.find(t => t.id === id);
   if (!t) return;
   t.done = !t.done;
-  if (t.done && state.activeTaskId === id) {
-    state.activeTaskId = null;
-    document.getElementById('currentTaskName').textContent = '— no task selected —';
-    document.getElementById('currentTaskName').classList.add('empty');
+  if (t.done) {
     addLog('Completed: "' + t.name + '"');
+    if (state.activeTaskId === id) {
+      state.activeTaskId = null;
+      document.getElementById('currentTaskName').textContent = '— no task selected —';
+      document.getElementById('currentTaskName').classList.add('empty');
+    }
   }
   renderTasks(); renderStats();
   saveState();
