@@ -673,6 +673,7 @@ let state = {
 let timer = null;
 let timerStartedAt = null;
 let secondsAtStart = null;
+let dragSrcId = null;
 const CIRCUMFERENCE = 2 * Math.PI * 122;
 
 // ── TAB SWITCH ──
@@ -977,44 +978,54 @@ function renderTasks() {
     const inp = list.querySelector('.task-name-edit');
     if (inp) { inp.focus(); inp.select(); }
   }
-  wireDrag();
   const done = state.tasks.filter(t => t.done).length;
   document.getElementById('taskCount').textContent = done + '/' + state.tasks.length + ' done';
 }
 
-function wireDrag() {
-  const items = document.querySelectorAll('#taskList .task-item');
-  let dragSrcId = null;
-  items.forEach(el => {
-    el.addEventListener('dragstart', e => {
-      dragSrcId = parseInt(el.dataset.id);
-      e.dataTransfer.effectAllowed = 'move';
-      el.classList.add('dragging');
-    });
-    el.addEventListener('dragend', () => {
-      el.classList.remove('dragging');
-    });
-    el.addEventListener('dragover', e => {
-      e.preventDefault();
-      e.dataTransfer.dropEffect = 'move';
-      el.classList.add('drag-over');
-    });
-    el.addEventListener('dragleave', () => {
-      el.classList.remove('drag-over');
-    });
-    el.addEventListener('drop', e => {
-      e.preventDefault();
-      el.classList.remove('drag-over');
-      const targetId = parseInt(el.dataset.id);
-      if (dragSrcId === targetId) return;
-      const srcIdx = state.tasks.findIndex(t => t.id === dragSrcId);
-      const tgtIdx = state.tasks.findIndex(t => t.id === targetId);
-      if (srcIdx === -1 || tgtIdx === -1) return;
-      const [moved] = state.tasks.splice(srcIdx, 1);
-      state.tasks.splice(tgtIdx, 0, moved);
-      saveState();
-      renderTasks();
-    });
+// ── DRAG & DROP (delegated, wired once) ──
+function initDragDrop() {
+  const list = document.getElementById('taskList');
+  list.addEventListener('dragstart', e => {
+    const item = e.target.closest('.task-item');
+    if (!item) return;
+    dragSrcId = parseInt(item.dataset.id);
+    e.dataTransfer.effectAllowed = 'move';
+    item.classList.add('dragging');
+  });
+  list.addEventListener('dragend', e => {
+    const item = e.target.closest('.task-item');
+    if (item) item.classList.remove('dragging');
+    list.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+  });
+  list.addEventListener('dragover', e => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    const item = e.target.closest('.task-item');
+    if (item) {
+      list.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+      item.classList.add('drag-over');
+    }
+  });
+  list.addEventListener('dragleave', e => {
+    if (!list.contains(e.relatedTarget)) {
+      list.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+    }
+  });
+  list.addEventListener('drop', e => {
+    e.preventDefault();
+    const item = e.target.closest('.task-item');
+    if (!item) return;
+    item.classList.remove('drag-over');
+    const targetId = parseInt(item.dataset.id);
+    if (!dragSrcId || dragSrcId === targetId) return;
+    const srcIdx = state.tasks.findIndex(t => t.id === dragSrcId);
+    const tgtIdx = state.tasks.findIndex(t => t.id === targetId);
+    dragSrcId = null;
+    if (srcIdx === -1 || tgtIdx === -1) return;
+    const [moved] = state.tasks.splice(srcIdx, 1);
+    state.tasks.splice(tgtIdx, 0, moved);
+    saveState();
+    renderTasks();
   });
 }
 
@@ -1210,6 +1221,7 @@ renderTasks();
 renderLog();
 renderStats();
 renderHistory();
+initDragDrop();
 document.getElementById('btnSound').style.opacity = state.soundEnabled ? '1' : '0.35';
 updateNewDayButton();
 if (notificationsSupported() && Notification.permission === 'default') {
