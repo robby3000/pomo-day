@@ -1050,7 +1050,7 @@ function renderHistory() {
 
 function saveState() {
   const toSave = {
-    tasks: state.tasks,
+    tasks: state.tasks.map(({ _notesOpen, ...t }) => t),
     sessionsCompleted: state.sessionsCompleted,
     totalFocusMin: state.totalFocusMin,
     sessionInCycle: state.sessionInCycle,
