@@ -405,6 +405,7 @@
   .mini-dots { display: flex; gap: 3px; }
   .mini-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--border); }
   .mini-dot.done { background: var(--work-color); }
+  .mini-dot.done.over { background: #ffaa33; }
   .mini-dot.current { background: var(--accent2); animation: pulse 1.5s infinite; }
 
   .task-delete {
@@ -789,32 +790,48 @@ function tick() {
   state.seconds = remaining;
   renderClock();
 }
+// Credit a pomo to every task that has met the 60% threshold this session.
+// Returns true if at least one task was credited.
+function creditPomoIfEarned() {
+  const POMO_THRESHOLD_SEC = Math.floor(getSettings().work * 60 * 0.6);
+  let credited = false;
+  Object.entries(state.sessionTaskTime).forEach(([idStr, secs]) => {
+    if (secs >= POMO_THRESHOLD_SEC) {
+      const t = state.tasks.find(t => t.id === parseInt(idStr));
+      if (t) { t.pomoDone++; credited = true; }
+    }
+  });
+  if (credited) renderTasks();
+  return credited;
+}
+
 function onSessionEnd(skipped) {
   pauseTimer();
-  if (!skipped && state.mode === 'work') {
-    playBeep(880, 0.6);
-    state.sessionsCompleted++;
-    state.sessionInCycle++;
-    state.totalFocusMin += getSettings().work;
-    const today = new Date().toDateString();
-    state.history[today] = (state.history[today] || 0) + 1;
-    addLog('Completed work session');
-    const POMO_THRESHOLD_SEC = Math.floor(getSettings().work * 60 * 0.6);
-    let pomoCredited = false;
-    Object.entries(state.sessionTaskTime).forEach(([idStr, secs]) => {
-      if (secs >= POMO_THRESHOLD_SEC) {
-        const t = state.tasks.find(t => t.id === parseInt(idStr));
-        if (t && t.pomoDone < t.pomoEstimate) { t.pomoDone++; pomoCredited = true; }
-      }
-    });
-    if (pomoCredited) renderTasks();
-    state.sessionTaskTime = {};
-    if (state.sessionInCycle >= 4) {
-      state.sessionInCycle = 0;
-      notify('Long Break!', 'You finished 4 sessions. Enjoy a long rest.');
-      setMode('long');
+  if (state.mode === 'work') {
+    if (skipped) {
+      // Credit pomo even on skip if threshold was met
+      creditPomoIfEarned();
     } else {
-      notify('Short Break!', 'Nice work. Take a quick breather.');
+      playBeep(880, 0.6);
+      state.sessionsCompleted++;
+      state.sessionInCycle++;
+      state.totalFocusMin += getSettings().work;
+      const today = new Date().toDateString();
+      state.history[today] = (state.history[today] || 0) + 1;
+      addLog('Completed work session');
+      creditPomoIfEarned();
+    }
+    state.sessionTaskTime = {};
+    if (!skipped) {
+      if (state.sessionInCycle >= 4) {
+        state.sessionInCycle = 0;
+        notify('Long Break!', 'You finished 4 sessions. Enjoy a long rest.');
+        setMode('long');
+      } else {
+        notify('Short Break!', 'Nice work. Take a quick breather.');
+        setMode('short');
+      }
+    } else {
       setMode('short');
     }
   } else if (!skipped && (state.mode === 'short' || state.mode === 'long')) {
@@ -824,7 +841,7 @@ function onSessionEnd(skipped) {
     setMode('work');
   } else {
     state.sessionTaskTime = {};
-    if (state.mode === 'work') setMode('short'); else setMode('work');
+    setMode('work');
   }
   renderStats();
   renderDots();
@@ -877,9 +894,25 @@ function addTask() {
 }
 
 function selectTask(id) {
+  const switching = state.running && state.mode === 'work' && state.activeTaskId !== null && state.activeTaskId !== id;
+  if (switching) {
+    // Credit the outgoing task immediately if threshold met, then reset session
+    creditPomoIfEarned();
+    state.sessionTaskTime = {};
+    pauseTimer();
+  }
   state.activeTaskId = state.activeTaskId === id ? null : id;
+  if (switching) {
+    // Reset clock to full work duration for the new task
+    const s = getSettings();
+    state.totalSeconds = s.work * 60;
+    state.seconds = state.totalSeconds;
+    renderClock();
+    startTimer();
+  }
   renderTasks();
   renderCurrentTask();
+  saveState();
 }
 
 function toggleDone(id, e) {
@@ -942,9 +975,10 @@ function renderTasks() {
   }
   const sorted = [...state.tasks];
   list.innerHTML = sorted.map(t => {
-    const dots = Array.from({length: t.pomoEstimate}, (_, i) => {
+    const dotCount = Math.max(t.pomoEstimate, t.pomoDone);
+    const dots = Array.from({length: dotCount}, (_, i) => {
       let cls = 'mini-dot';
-      if (i < t.pomoDone) cls += ' done';
+      if (i < t.pomoDone) cls += i < t.pomoEstimate ? ' done' : ' done over';
       else if (i === t.pomoDone && !t.done && t.id === state.activeTaskId && state.mode === 'work') cls += ' current';
       return '<div class="' + cls + '"></div>';
     }).join('');
