@@ -11,9 +11,7 @@
 <meta name="theme-color" content="#e8ff47">
 
 <!-- iOS home screen support -->
-<!-- removing this line as suspected cause of issue in Brave mobile:
 <meta name="apple-mobile-web-app-capable" content="yes">
--->
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Pomo/Day">
 <link rel="apple-touch-icon" href="/pomo-day/icons/icon-192.png">
@@ -1256,9 +1254,20 @@ function notify(title, body) {
   clearTimeout(notifyTimer);
   notifyTimer = setTimeout(() => el.classList.remove('show'), 4000);
   if (notificationsSupported()) {
-    if (Notification.permission === 'granted') new Notification(title, { body });
+    if (Notification.permission === 'granted') showSystemNotification(title, body);
     else if (Notification.permission !== 'denied') Notification.requestPermission();
   }
+}
+// Android Chromium (Brave/Chrome) has no Notification constructor — it throws.
+// Prefer the service worker's showNotification; fall back to the constructor.
+function showSystemNotification(title, body) {
+  if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+    navigator.serviceWorker.ready
+      .then(reg => reg.showNotification(title, { body }))
+      .catch(() => {});
+    return;
+  }
+  try { new Notification(title, { body }); } catch (e) {}
 }
 
 function escHtml(s) {
