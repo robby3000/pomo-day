@@ -2,9 +2,11 @@
 
 ## Overview
 
-Convert the deployed single-file app at `robby3000.github.io/pomo-day/` into a fully installable Progressive Web App. The app must be add-to-home-screen eligible on iOS and Android, work 100% offline after first load, and show a custom splash screen and app icon.
+Convert the deployed single-file app at `robby3000.github.io/pomo-day/` into a fully installable Progressive Web App. The app must be add-to-home-screen eligible on iOS and Android, work 100% offline after first load, and display the correct app icon.
 
-The single-file constraint makes this slightly unusual: the service worker and manifest cannot be inlined into `index.html` — they **must** be separate files served at the repo root. This is the one intentional exception to the no-external-files rule.
+The single-file constraint makes this slightly unusual: the service worker and manifest cannot be inlined into `index.html` — they **must** be separate files served at the repo root.
+
+IMPORTANT: the app is already functional as a single file HTML (+ JavaScript + CSS) file. Therefore DO NOT BREAK ANY EXISTING FUNCTIONALITY. All you are doing now is to do the PWA bit.
 
 ---
 
@@ -15,7 +17,6 @@ The single-file constraint makes this slightly unusual: the service worker and m
 - Fonts loaded from Google Fonts CDN (`fonts.googleapis.com` / `fonts.gstatic.com`).
 - All app state in localStorage; no server-side calls.
 - No build step, no bundler, no npm.
-- AGENTS.md allows new files only for PWA artefacts (manifest, service worker, icons).
 
 ---
 
@@ -25,10 +26,6 @@ The single-file constraint makes this slightly unusual: the service worker and m
 |---|---|
 | `manifest.json` | Web App Manifest — install metadata |
 | `sw.js` | Service Worker — offline caching |
-| `icons/icon-192.png` | App icon 192×192 (required by manifest) |
-| `icons/icon-512.png` | App icon 512×512 (required by manifest) |
-| `icons/icon-maskable-192.png` | Maskable icon 192×192 (for Android adaptive icons) |
-| `icons/icon-maskable-512.png` | Maskable icon 512×512 |
 
 ## Files to Edit
 
@@ -40,13 +37,20 @@ The single-file constraint makes this slightly unusual: the service worker and m
 
 ## Task Breakdown
 
-### Task 1 — Create icons
+### Task 1 — Icons (already done)
 
-Generate four PNG icons at the sizes above. Design: dark background (`#0d0d0d`), yellow accent (`#e8ff47`), minimal "PD" or tomato/timer glyph centred. The maskable variants must keep all content inside the safe zone (the inner 80% circle).
+The following icons are already present in `icons/`:
 
-Tools: any raster editor or script (e.g. `canvas`-based Node script, Figma export, or `sharp` CLI). Commit the PNGs at `icons/`.
+| File | Size |
+|---|---|
+| `icons/icon-192.png` | 192×192 |
+| `icons/icon-512.png` | 512×512 |
+| `icons/icon-master.png` | source/master |
+| `icons/apple-touch-icon.png` | iOS touch icon |
+| `icons/favicon-16.png` | Favicon 16×16 |
+| `icons/favicon-32.png` | Favicon 32×32 |
 
-**Acceptance**: all four PNGs exist, are valid images, correct sizes.
+No maskable icons were created. The manifest and `apple-touch-icon` link should reference the files above.
 
 ---
 
@@ -77,24 +81,12 @@ Create `manifest.json` at the repo root with the following fields:
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
-    },
-    {
-      "src": "/pomo-day/icons/icon-maskable-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "maskable"
-    },
-    {
-      "src": "/pomo-day/icons/icon-maskable-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "maskable"
     }
   ]
 }
 ```
 
-**Note on `start_url` / `scope`**: GitHub Pages serves the repo at `/pomo-day/`. The `start_url` must match this path exactly or the browser will refuse to install. Confirm the live URL before finalising.
+**Note on `start_url` / `scope`**: GitHub Pages serves the repo at `/pomo-day/`. Both `start_url` and `scope` are set to `/pomo-day/` — this must match the live URL exactly or the browser will refuse to install.
 
 **Acceptance**: `manifest.json` validates at [web.dev/measure](https://web.dev/measure) or Chrome DevTools → Application → Manifest with no errors.
 
@@ -203,8 +195,6 @@ Inside `<head>`, after the existing `<meta viewport>` line, add:
 
 **Edit precision**: insert the block as a group immediately after `<meta name="viewport" ...>` (currently line 5). Do not touch any other line.
 
-**Acceptance**: on iOS Safari, "Add to Home Screen" shows correct title "Pomo/Day" and the icon. Status bar in standalone mode renders translucent over the dark background.
-
 ---
 
 ### Task 5 — Edit `index.html`: register service worker
@@ -227,21 +217,6 @@ if ('serviceWorker' in navigator) {
 **Edit precision**: insert only these lines, immediately after the `Notification.requestPermission()` block, before the closing `</script>` tag.
 
 **Acceptance**: DevTools → Application → Service Workers shows `sw.js` as registered. No console errors.
-
----
-
-## Verification Checklist
-
-Run through these after all tasks are complete:
-
-- [ ] Chrome DevTools → Application → Manifest: no errors, all icons resolved, `start_url` matches live URL.
-- [ ] Chrome DevTools → Application → Service Workers: status "activated and is running".
-- [ ] Lighthouse PWA audit (DevTools → Lighthouse → Progressive Web App): score passes installability checks.
-- [ ] DevTools Network → toggle "Offline" → reload: app loads fully from cache.
-- [ ] On Android Chrome: "Add to Home Screen" prompt appears or is manually triggered; icon and splash screen are correct.
-- [ ] On iOS Safari: "Add to Home Screen" works; icon, title, and standalone mode are correct.
-- [ ] Fonts render correctly both online and offline (cached).
-- [ ] After deploying a cache-version bump, old cache is deleted on activate and new content is served.
 
 ---
 

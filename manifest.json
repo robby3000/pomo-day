@@ -1,0 +1,25 @@
+{
+  "name": "Pomo / Day Planner",
+  "short_name": "Pomo/Day",
+  "description": "Pomodoro timer with daily task planning.",
+  "start_url": "/pomo-day/",
+  "scope": "/pomo-day/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0d0d0d",
+  "theme_color": "#e8ff47",
+  "icons": [
+    {
+      "src": "/pomo-day/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/pomo-day/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

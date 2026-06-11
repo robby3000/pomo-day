@@ -3,6 +3,19 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+
+<!-- PWA manifest -->
+<link rel="manifest" href="/pomo-day/manifest.json">
+
+<!-- Theme colour (browser chrome on Android) -->
+<meta name="theme-color" content="#e8ff47">
+
+<!-- iOS home screen support -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Pomo/Day">
+<link rel="apple-touch-icon" href="/pomo-day/icons/icon-192.png">
+
 <title>POMO / DAY PLANNER</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Bebas+Neue&display=swap" rel="stylesheet">
@@ -1265,6 +1278,15 @@ document.getElementById('btnSound').style.opacity = state.soundEnabled ? '1' : '
 updateNewDayButton();
 if (notificationsSupported() && Notification.permission === 'default') {
   Notification.requestPermission();
+}
+
+// SERVICE WORKER
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/pomo-day/sw.js').catch(err => {
+      console.warn('SW registration failed:', err);
+    });
+  });
 }
 </script>
 </body>
