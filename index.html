@@ -874,6 +874,23 @@ document.getElementById('modeTabs').addEventListener('keydown', e => {
   setMode(tabs[next].dataset.mode);
 });
 
+// ── WAKE LOCK ──
+// Keep the screen awake while the timer runs so ticks and beeps fire on time.
+let wakeLock = null;
+async function acquireWakeLock() {
+  if (!('wakeLock' in navigator)) return;
+  try {
+    wakeLock = await navigator.wakeLock.request('screen');
+  } catch (e) { wakeLock = null; }
+}
+function releaseWakeLock() {
+  if (wakeLock) { wakeLock.release().catch(() => {}); wakeLock = null; }
+}
+// The OS drops the lock whenever the page is hidden; reacquire on return.
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && state.running) acquireWakeLock();
+});
+
 // ── TIMER ──
 // Reflect timer state on <body> so CSS can drive the ambient glow.
 function syncAmbient() {
@@ -889,6 +906,7 @@ function startTimer() {
   document.getElementById('btnStart').textContent = 'PAUSE';
   timer = setInterval(tick, 500);
   syncAmbient();
+  acquireWakeLock();
 }
 function pauseTimer() {
   state.running = false;
@@ -897,6 +915,7 @@ function pauseTimer() {
   secondsAtStart = null;
   document.getElementById('btnStart').textContent = 'START';
   syncAmbient();
+  releaseWakeLock();
 }
 function resetTimer() {
   pauseTimer();
