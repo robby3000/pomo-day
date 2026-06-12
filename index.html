@@ -889,7 +889,6 @@ function startTimer() {
   document.getElementById('btnStart').textContent = 'PAUSE';
   timer = setInterval(tick, 500);
   syncAmbient();
-  if (notificationsSupported() && Notification.permission === 'default') Notification.requestPermission();
 }
 function pauseTimer() {
   state.running = false;
@@ -1380,9 +1379,6 @@ function showDayBanner(doneTasks, sessions) {
 
 // ── NOTIFY ──
 let notifyTimer;
-function notificationsSupported() {
-  return typeof Notification !== 'undefined';
-}
 let _audioCtx = null;
 function getAudioCtx() {
   if (!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -1418,21 +1414,6 @@ function notify(title, body) {
   el.classList.add('show');
   clearTimeout(notifyTimer);
   notifyTimer = setTimeout(() => el.classList.remove('show'), 4000);
-  if (notificationsSupported()) {
-    if (Notification.permission === 'granted') showSystemNotification(title, body);
-    else if (Notification.permission !== 'denied') Notification.requestPermission();
-  }
-}
-// Android Chromium (Brave/Chrome) has no Notification constructor — it throws.
-// Prefer the service worker's showNotification; fall back to the constructor.
-function showSystemNotification(title, body) {
-  if (navigator.serviceWorker && navigator.serviceWorker.controller) {
-    navigator.serviceWorker.ready
-      .then(reg => reg.showNotification(title, { body }))
-      .catch(() => {});
-    return;
-  }
-  try { new Notification(title, { body }); } catch (e) {}
 }
 
 function escHtml(s) {
