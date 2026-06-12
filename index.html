@@ -559,6 +559,30 @@
     -webkit-tap-highlight-color: transparent;
   }
 
+  /* ── AMBIENT SLEEP ──
+     After 60s without interaction during a running session, the UI fades
+     away leaving only the dimmed timer ring. Any touch/key/move wakes it. */
+  .ambient-fade { transition: opacity .25s, visibility .25s, border-color .4s; }
+  body.ambient .ambient-fade {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 2s, visibility 2s;
+  }
+  .clock-container { transition: opacity .25s; }
+  body.ambient .clock-container {
+    opacity: .3;
+    transition: opacity 2s;
+    /* slow pixel drift so the dimmed ring can't burn into OLED panels */
+    animation: ambientDrift 240s ease-in-out infinite;
+  }
+  @keyframes ambientDrift {
+    0%, 100% { transform: translate(0, 0); }
+    25%      { transform: translate(7px, 9px); }
+    50%      { transform: translate(-6px, 15px); }
+    75%      { transform: translate(-9px, 5px); }
+  }
+
   /* ── ACCESSIBILITY ── */
   button:focus-visible, input:focus-visible, textarea:focus-visible {
     outline: 2px solid var(--accent);
@@ -605,7 +629,7 @@
 </head>
 <body>
 
-<header>
+<header class="ambient-fade">
   <div class="logo">POMO<span>/</span>DAY</div>
   <div class="header-stats">
     <div>Sessions<strong id="statSessions">0</strong></div>
@@ -618,7 +642,7 @@
 <!-- TIMER PAGE -->
 <div class="page timer-page active" id="pageTimer">
 
-  <div class="mode-tabs" id="modeTabs" role="tablist" aria-label="Timer mode">
+  <div class="mode-tabs ambient-fade" id="modeTabs" role="tablist" aria-label="Timer mode">
     <button class="mode-tab active" data-mode="work" role="tab" aria-selected="true">Work</button>
     <button class="mode-tab" data-mode="short" role="tab" aria-selected="false" tabindex="-1" aria-label="Short break">Short Brk</button>
     <button class="mode-tab" data-mode="long" role="tab" aria-selected="false" tabindex="-1" aria-label="Long break">Long Brk</button>
@@ -630,27 +654,27 @@
       <circle class="clock-progress" id="clockRing" cx="140" cy="140" r="122"
         stroke-dasharray="766.5" stroke-dashoffset="0"/>
     </svg>
-    <div class="clock-inner">
+    <div class="clock-inner ambient-fade">
       <div class="time-display" id="timeDisplay">25:00</div>
       <div class="mode-label" id="modeLabel">Work</div>
     </div>
   </div>
 
-  <div class="session-dots" id="sessionDots" aria-hidden="true"></div>
+  <div class="session-dots ambient-fade" id="sessionDots" aria-hidden="true"></div>
 
-  <div class="controls">
+  <div class="controls ambient-fade">
     <button class="btn btn-ghost" onclick="resetTimer()">↺ Reset</button>
     <button class="btn btn-primary" id="btnStart" onclick="toggleTimer()">START</button>
     <button class="btn btn-ghost" onclick="skipSession()">Skip →</button>
     <button class="btn btn-ghost" id="btnSound" onclick="toggleSound()" title="Toggle sound" aria-label="Toggle sound" aria-pressed="true">♪</button>
   </div>
 
-  <div class="current-task-block">
+  <div class="current-task-block ambient-fade">
     <div class="current-task-label">Now working on</div>
     <div class="current-task-name empty" id="currentTaskName">— no task selected —</div>
   </div>
 
-  <div class="settings-row">
+  <div class="settings-row ambient-fade">
     <div class="setting-block">
       <label for="setWork">Work</label>
       <input type="number" id="setWork" value="25" min="1" max="90" onchange="updateSettings()">
@@ -669,12 +693,12 @@
 
 <!-- TASKS PAGE -->
 <div class="page tasks-page" id="pageTasks">
-  <div class="panel-header">
+  <div class="panel-header ambient-fade">
     <div class="panel-title">Today's Tasks</div>
     <div class="task-count" id="taskCount">0 tasks</div>
   </div>
 
-  <div class="add-task-row">
+  <div class="add-task-row ambient-fade">
     <input class="add-task-input" id="taskInput" type="text" placeholder="Add a task…" maxlength="60"
       aria-label="New task name" onkeydown="if(event.key==='Enter') addTask()">
     <div class="pomo-stepper">
@@ -685,7 +709,7 @@
     <button class="btn btn-primary" style="padding:9px 14px;font-size:12px;" onclick="addTask()" aria-label="Add task">+</button>
   </div>
 
-  <div class="tasks-scroll">
+  <div class="tasks-scroll ambient-fade">
     <div class="task-list" id="taskList"></div>
 
     <div class="history-section">
@@ -703,7 +727,7 @@
 </div>
 
 <!-- BOTTOM NAV (mobile only) -->
-<nav class="tab-nav">
+<nav class="tab-nav ambient-fade">
   <button class="tab-nav-btn active" id="navTimer" onclick="switchTab('timer')">
     <span class="nav-icon" aria-hidden="true">⏱</span>Timer
   </button>
@@ -891,6 +915,29 @@ document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible' && state.running) acquireWakeLock();
 });
 
+// ── AMBIENT SLEEP ──
+// After AMBIENT_IDLE_MS without interaction during a running session,
+// fade the UI down to just the dimmed timer ring (see .ambient-fade CSS).
+// Faded elements are pointer-events:none, so the waking tap can never
+// accidentally activate a hidden control.
+const AMBIENT_IDLE_MS = 60000;
+let ambientTimer = null;
+function armAmbient() {
+  clearTimeout(ambientTimer);
+  if (!state.running) return;
+  ambientTimer = setTimeout(() => document.body.classList.add('ambient'), AMBIENT_IDLE_MS);
+}
+function disarmAmbient() {
+  clearTimeout(ambientTimer);
+  document.body.classList.remove('ambient');
+}
+['pointerdown', 'pointermove', 'keydown', 'touchstart', 'wheel'].forEach(ev =>
+  document.addEventListener(ev, () => {
+    document.body.classList.remove('ambient');
+    armAmbient();
+  }, { capture: true, passive: true })
+);
+
 // ── TIMER ──
 // Reflect timer state on <body> so CSS can drive the ambient glow.
 function syncAmbient() {
@@ -907,6 +954,7 @@ function startTimer() {
   timer = setInterval(tick, 500);
   syncAmbient();
   acquireWakeLock();
+  armAmbient();
 }
 function pauseTimer() {
   state.running = false;
@@ -916,6 +964,7 @@ function pauseTimer() {
   document.getElementById('btnStart').textContent = 'START';
   syncAmbient();
   releaseWakeLock();
+  disarmAmbient();
 }
 function resetTimer() {
   pauseTimer();
