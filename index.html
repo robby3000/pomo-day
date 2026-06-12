@@ -1021,7 +1021,7 @@ function addTask() {
   const name = input.value.trim();
   if (!name) return;
   state.tasks.push({ id: Date.now(), name, pomoEstimate: parseInt(pomoIn.value) || 2, pomoDone: 0, done: false, notes: '' });
-  input.value = ''; pomoIn.value = '2';
+  input.value = ''; pomoIn.value = '1';
   input.focus();
   renderTasks();
   addLog('Added: "' + name + '"');
