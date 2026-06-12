@@ -1491,6 +1491,7 @@ function escHtml(s) {
 // ── INIT ──
 loadState();
 checkDailyReset();
+updateSettings(); // sync timer with saved durations, not the hardcoded defaults
 applyCircadianAccent();
 setInterval(applyCircadianAccent, 60000);
 applyColor(COLORS[state.mode]);
