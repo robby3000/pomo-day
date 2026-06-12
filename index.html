@@ -50,6 +50,8 @@
 
   body {
     background: var(--bg);
+    background-image: radial-gradient(circle, #151515 1px, transparent 1.5px);
+    background-size: 26px 26px;
     color: var(--text);
     font-family: 'DM Mono', monospace;
     display: flex;
@@ -57,12 +59,15 @@
     overflow: hidden;
   }
 
+  ::selection { background: var(--accent); color: #000; }
+
   /* ── HEADER ── */
   header {
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding: 12px 20px;
+    padding-top: calc(12px + env(safe-area-inset-top));
     border-bottom: 1px solid var(--border);
     flex-shrink: 0;
     position: relative;
@@ -118,6 +123,7 @@
     border-top: 1px solid var(--border);
     flex-shrink: 0;
     background: var(--bg);
+    padding-bottom: env(safe-area-inset-bottom);
   }
   .tab-nav-btn {
     flex: 1;
@@ -184,6 +190,32 @@
     height: min(220px, 60vw);
     flex-shrink: 0;
   }
+  /* Ambient glow: a slow focus pulse while working; during breaks it
+     breathes at a calm ~5.5s cadence — inhale, hold, exhale along with it. */
+  .clock-container::before {
+    content: '';
+    position: absolute; inset: -14%;
+    border-radius: 50%;
+    background: radial-gradient(circle, color-mix(in srgb, var(--mode-color) 20%, transparent) 0%, transparent 70%);
+    opacity: 0;
+    transition: opacity 1.2s;
+    pointer-events: none;
+    z-index: -1;
+  }
+  body[data-timer="work"] .clock-container::before {
+    opacity: 1;
+    animation: focusGlow 6s ease-in-out infinite;
+  }
+  body[data-timer="break"] .clock-container::before {
+    opacity: 1;
+    animation: breatheGlow 5.5s ease-in-out infinite;
+  }
+  body[data-timer="break"] .clock-svg {
+    animation: breatheScale 5.5s ease-in-out infinite;
+  }
+  @keyframes focusGlow { 0%,100% { opacity: .4 } 50% { opacity: 1 } }
+  @keyframes breatheGlow { 0%,100% { transform: scale(.95); opacity: .45 } 45%,55% { transform: scale(1.06); opacity: 1 } }
+  @keyframes breatheScale { 0%,100% { transform: rotate(-90deg) scale(.985) } 45%,55% { transform: rotate(-90deg) scale(1.015) } }
   .clock-svg { transform: rotate(-90deg); width: 100%; height: 100%; }
   .clock-track { fill: none; stroke: var(--surface2); stroke-width: 10; }
   .clock-progress {
@@ -247,6 +279,9 @@
     background: none; color: var(--muted);
     border-color: var(--border);
   }
+  .btn:active { transform: translateY(1px); }
+  .btn-primary:hover { box-shadow: 0 0 16px color-mix(in srgb, var(--mode-color) 35%, transparent); }
+  .btn-ghost:hover { color: var(--text); border-color: var(--muted); }
 
   /* CURRENT TASK */
   .current-task-block {
@@ -272,7 +307,20 @@
     border-radius: var(--radius);
     padding: 8px 10px;
     text-align: center;
+    position: relative;
+    cursor: ns-resize;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: none;
+    transition: border-color .15s;
   }
+  .setting-block::after {
+    content: '↕' / '';
+    position: absolute; top: 6px; right: 8px;
+    font-size: 11px; color: var(--muted); opacity: .5;
+  }
+  .setting-block.scrubbing { border-color: var(--mode-color); }
+  .setting-block.scrubbing input[type=number] { color: var(--mode-color); }
   .setting-block label { display: block; font-size: 12px; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
   .setting-block input[type=number] {
     width: 100%; background: none; border: none; outline: none;
@@ -517,6 +565,8 @@
     outline-offset: 2px;
   }
 
+  ::view-transition-old(root), ::view-transition-new(root) { animation-duration: .18s; }
+
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {
       animation-duration: 0.01ms !important;
@@ -568,10 +618,10 @@
 <!-- TIMER PAGE -->
 <div class="page timer-page active" id="pageTimer">
 
-  <div class="mode-tabs" id="modeTabs">
-    <button class="mode-tab active" data-mode="work">Work</button>
-    <button class="mode-tab" data-mode="short" aria-label="Short break">Short Brk</button>
-    <button class="mode-tab" data-mode="long" aria-label="Long break">Long Brk</button>
+  <div class="mode-tabs" id="modeTabs" role="tablist" aria-label="Timer mode">
+    <button class="mode-tab active" data-mode="work" role="tab" aria-selected="true">Work</button>
+    <button class="mode-tab" data-mode="short" role="tab" aria-selected="false" tabindex="-1" aria-label="Short break">Short Brk</button>
+    <button class="mode-tab" data-mode="long" role="tab" aria-selected="false" tabindex="-1" aria-label="Long break">Long Brk</button>
   </div>
 
   <div class="clock-container">
@@ -712,10 +762,14 @@ const CIRCUMFERENCE = 2 * Math.PI * 122;
 
 // ── TAB SWITCH ──
 function switchTab(tab) {
-  document.getElementById('pageTimer').classList.toggle('active', tab === 'timer');
-  document.getElementById('pageTasks').classList.toggle('active', tab === 'tasks');
-  document.getElementById('navTimer').classList.toggle('active', tab === 'timer');
-  document.getElementById('navTasks').classList.toggle('active', tab === 'tasks');
+  const apply = () => {
+    document.getElementById('pageTimer').classList.toggle('active', tab === 'timer');
+    document.getElementById('pageTasks').classList.toggle('active', tab === 'tasks');
+    document.getElementById('navTimer').classList.toggle('active', tab === 'timer');
+    document.getElementById('navTasks').classList.toggle('active', tab === 'tasks');
+  };
+  if (document.startViewTransition) document.startViewTransition(apply);
+  else apply();
 }
 
 // ── SETTINGS ──
@@ -743,7 +797,12 @@ function setMode(mode) {
   const s = getSettings();
   state.totalSeconds = s[mode] * 60;
   state.seconds = state.totalSeconds;
-  document.querySelectorAll('.mode-tab').forEach(t => t.classList.toggle('active', t.dataset.mode === mode));
+  document.querySelectorAll('.mode-tab').forEach(t => {
+    const on = t.dataset.mode === mode;
+    t.classList.toggle('active', on);
+    t.setAttribute('aria-selected', on);
+    t.tabIndex = on ? 0 : -1;
+  });
   document.getElementById('modeLabel').textContent = LABELS[mode];
   applyColor(COLORS[mode]);
   if (mode === 'short' || mode === 'long') {
@@ -756,6 +815,26 @@ function setMode(mode) {
 
 function applyColor(color) {
   document.documentElement.style.setProperty('--mode-color', color);
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute('content', color);
+}
+
+// ── CIRCADIAN ACCENT ──
+// The work accent follows the clock: electric lemon by day,
+// gold at dusk, amber late at night (warmer, less blue light after dark).
+function circadianAccent() {
+  const h = new Date().getHours();
+  if (h >= 21 || h < 5) return '#ffb43d';
+  if (h >= 17) return '#ffd23d';
+  return '#e8ff47';
+}
+function applyCircadianAccent() {
+  const c = circadianAccent();
+  if (COLORS.work === c) return;
+  COLORS.work = c;
+  document.documentElement.style.setProperty('--accent', c);
+  document.documentElement.style.setProperty('--work-color', c);
+  if (state.mode === 'work') applyColor(c);
 }
 
 function renderCurrentTask() {
@@ -779,7 +858,27 @@ document.querySelectorAll('.mode-tab').forEach(tab => {
   tab.addEventListener('click', () => setMode(tab.dataset.mode));
 });
 
+// Roving-tabindex keyboard navigation for the mode tablist
+document.getElementById('modeTabs').addEventListener('keydown', e => {
+  const tabs = [...document.querySelectorAll('.mode-tab')];
+  const idx = tabs.indexOf(document.activeElement);
+  if (idx === -1) return;
+  let next = null;
+  if (e.key === 'ArrowRight' || e.key === 'ArrowDown') next = (idx + 1) % tabs.length;
+  else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') next = (idx + tabs.length - 1) % tabs.length;
+  else if (e.key === 'Home') next = 0;
+  else if (e.key === 'End') next = tabs.length - 1;
+  if (next === null) return;
+  e.preventDefault();
+  tabs[next].focus();
+  setMode(tabs[next].dataset.mode);
+});
+
 // ── TIMER ──
+// Reflect timer state on <body> so CSS can drive the ambient glow.
+function syncAmbient() {
+  document.body.dataset.timer = state.running ? (state.mode === 'work' ? 'work' : 'break') : 'idle';
+}
 function toggleTimer() {
   state.running ? pauseTimer() : startTimer();
 }
@@ -789,6 +888,8 @@ function startTimer() {
   state.running = true;
   document.getElementById('btnStart').textContent = 'PAUSE';
   timer = setInterval(tick, 500);
+  syncAmbient();
+  if (notificationsSupported() && Notification.permission === 'default') Notification.requestPermission();
 }
 function pauseTimer() {
   state.running = false;
@@ -796,6 +897,7 @@ function pauseTimer() {
   timerStartedAt = null;
   secondsAtStart = null;
   document.getElementById('btnStart').textContent = 'START';
+  syncAmbient();
 }
 function resetTimer() {
   pauseTimer();
@@ -1043,6 +1145,49 @@ function renderTasks() {
   }
   const done = state.tasks.filter(t => t.done).length;
   document.getElementById('taskCount').textContent = done + '/' + state.tasks.length + ' done';
+}
+
+// ── SCRUB DIALS ──
+// Drag a duration block up/down to ratchet its minutes.
+// The number inputs remain fully usable by keyboard and screen readers.
+function initScrubDials() {
+  document.querySelectorAll('.setting-block').forEach(block => {
+    const input = block.querySelector('input[type=number]');
+    if (!input) return;
+    let startY = null, startVal = 0, lastVal = 0, scrubbing = false;
+    block.addEventListener('pointerdown', e => {
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
+      startY = e.clientY;
+      startVal = parseInt(input.value) || parseInt(input.min);
+      lastVal = startVal;
+      scrubbing = false;
+    });
+    block.addEventListener('pointermove', e => {
+      if (startY === null) return;
+      const dy = startY - e.clientY;
+      if (!scrubbing) {
+        if (Math.abs(dy) < 6) return;
+        scrubbing = true;
+        block.classList.add('scrubbing');
+        block.setPointerCapture(e.pointerId);
+      }
+      const min = parseInt(input.min), max = parseInt(input.max);
+      const val = Math.min(max, Math.max(min, startVal + Math.round(dy / 8)));
+      if (val !== lastVal) {
+        lastVal = val;
+        input.value = val;
+        updateSettings();
+        if (navigator.vibrate) navigator.vibrate(4);
+      }
+    });
+    const endScrub = () => {
+      if (scrubbing) block.classList.remove('scrubbing');
+      startY = null;
+      scrubbing = false;
+    };
+    block.addEventListener('pointerup', endScrub);
+    block.addEventListener('pointercancel', endScrub);
+  });
 }
 
 // ── DRAG & DROP (delegated, wired once) ──
@@ -1297,7 +1442,10 @@ function escHtml(s) {
 // ── INIT ──
 loadState();
 checkDailyReset();
-applyColor(COLORS.work);
+applyCircadianAccent();
+setInterval(applyCircadianAccent, 60000);
+applyColor(COLORS[state.mode]);
+syncAmbient();
 renderClock();
 renderDots();
 renderTasks();
@@ -1305,12 +1453,10 @@ renderLog();
 renderStats();
 renderHistory();
 initDragDrop();
+initScrubDials();
 document.getElementById('btnSound').style.opacity = state.soundEnabled ? '1' : '0.35';
 document.getElementById('btnSound').setAttribute('aria-pressed', state.soundEnabled);
 updateNewDayButton();
-if (notificationsSupported() && Notification.permission === 'default') {
-  Notification.requestPermission();
-}
 
 // SERVICE WORKER
 if ('serviceWorker' in navigator) {
