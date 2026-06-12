@@ -3,6 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="description" content="Pomo/Day — a pomodoro timer and daily task planner. Plan your day, focus in timed sessions, and track your progress.">
+<meta name="color-scheme" content="dark">
 
 <!-- PWA manifest -->
 <link rel="manifest" href="/pomo-day/manifest.json">
@@ -18,7 +20,9 @@
 
 <title>POMO / DAY PLANNER</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Bebas+Neue&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Bebas+Neue&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Bebas+Neue&display=swap" rel="stylesheet"></noscript>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -30,7 +34,7 @@
     --accent: #e8ff47;
     --accent2: #ff6b35;
     --text: #f0f0f0;
-    --muted: #666;
+    --muted: #9a9a9a;
     --work-color: #e8ff47;
     --short-color: #47d9ff;
     --long-color: #b47fff;
@@ -81,17 +85,17 @@
   }
   .logo span { color: var(--muted); }
   .header-stats {
-    display: flex; gap: 20px;
-    font-size: 10px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase;
+    display: flex; gap: 16px;
+    font-size: 11px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase;
   }
-  .header-stats strong { color: var(--text); font-size: 13px; display: block; margin-top: 1px; }
+  .header-stats strong { color: var(--text); font-size: 14px; display: block; margin-top: 1px; }
 
   .btn-new-day {
     background: var(--surface);
     border: 1px solid var(--border);
     color: var(--muted);
     font-family: 'DM Mono', monospace;
-    font-size: 9px;
+    font-size: 11px;
     letter-spacing: 1px;
     text-transform: uppercase;
     padding: 6px 12px;
@@ -120,7 +124,7 @@
     padding: 12px 0 10px;
     background: none; border: none;
     font-family: 'DM Mono', monospace;
-    font-size: 10px; letter-spacing: 2px; text-transform: uppercase;
+    font-size: 12px; letter-spacing: 2px; text-transform: uppercase;
     color: var(--muted);
     cursor: pointer;
     border-top: 2px solid transparent;
@@ -156,7 +160,7 @@
     flex: 1;
     padding: 6px 8px;
     font-family: 'DM Mono', monospace;
-    font-size: 10px;
+    font-size: 12px;
     letter-spacing: 1px;
     text-transform: uppercase;
     background: none;
@@ -202,7 +206,7 @@
     color: var(--text);
   }
   .mode-label {
-    font-size: 9px; letter-spacing: 3px; text-transform: uppercase;
+    font-size: 12px; letter-spacing: 3px; text-transform: uppercase;
     color: var(--mode-color);
     margin-top: 3px;
   }
@@ -219,10 +223,10 @@
   @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
 
   /* CONTROLS */
-  .controls { display: flex; gap: 10px; align-items: center; width: 100%; justify-content: center; }
+  .controls { display: flex; gap: 10px; align-items: center; width: 100%; justify-content: center; flex-wrap: wrap; }
   .btn {
     font-family: 'DM Mono', monospace;
-    font-size: 11px;
+    font-size: 12px;
     letter-spacing: 2px;
     text-transform: uppercase;
     padding: 10px 18px;
@@ -254,7 +258,7 @@
     border-radius: var(--radius);
     transition: border-color .4s;
   }
-  .current-task-label { font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+  .current-task-label { font-size: 12px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
   .current-task-name { font-size: 13px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .current-task-name.empty { color: var(--muted); font-style: italic; }
 
@@ -269,7 +273,7 @@
     padding: 8px 10px;
     text-align: center;
   }
-  .setting-block label { display: block; font-size: 8px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+  .setting-block label { display: block; font-size: 12px; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
   .setting-block input[type=number] {
     width: 100%; background: none; border: none; outline: none;
     font-family: 'Bebas Neue', sans-serif; font-size: 26px; color: var(--text);
@@ -299,7 +303,7 @@
     font-size: 18px; letter-spacing: 3px; color: var(--text);
   }
   .task-count {
-    font-size: 10px; color: var(--muted);
+    font-size: 12px; color: var(--muted);
     background: var(--surface);
     border: 1px solid var(--border);
     padding: 2px 8px; border-radius: 20px;
@@ -381,7 +385,7 @@
   }
   .task-item.active { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, var(--surface)); }
   .task-item.active::before { opacity: 1; }
-  .task-item.done { opacity: .45; }
+  .task-item.done { opacity: .55; }
   .task-item.done .task-name { text-decoration: line-through; }
 
   .task-check {
@@ -404,10 +408,10 @@
     padding: 1px 4px;
     width: 100%; outline: none;
   }
-  .task-pomo-info { font-size: 10px; color: var(--muted); margin-top: 3px; display: flex; align-items: center; gap: 6px; }
+  .task-pomo-info { font-size: 12px; color: var(--muted); margin-top: 3px; display: flex; align-items: center; gap: 6px; }
   .task-notes-toggle {
     background: none; border: none; color: var(--muted);
-    font-family: 'DM Mono', monospace; font-size: 9px;
+    font-family: 'DM Mono', monospace; font-size: 12px;
     letter-spacing: 1px; text-transform: uppercase;
     cursor: pointer; padding: 3px 0; margin-top: 3px;
     -webkit-tap-highlight-color: transparent;
@@ -416,7 +420,7 @@
     width: 100%; background: var(--surface2);
     border: 1px solid var(--border); border-radius: 2px;
     color: var(--text); font-family: 'DM Mono', monospace;
-    font-size: 11px; padding: 6px 8px; margin-top: 4px;
+    font-size: 12px; padding: 6px 8px; margin-top: 4px;
     resize: vertical; min-height: 52px; outline: none;
   }
   .mini-dots { display: flex; gap: 3px; }
@@ -441,24 +445,24 @@
 
   .empty-tasks {
     padding: 40px 20px; text-align: center;
-    color: var(--muted); font-size: 11px; letter-spacing: 1px;
+    color: var(--muted); font-size: 12px; letter-spacing: 1px;
   }
-  .empty-tasks .big { font-family: 'Bebas Neue', sans-serif; font-size: 28px; display: block; color: var(--surface2); letter-spacing: 3px; margin-bottom: 8px; }
+  .empty-tasks .big { font-family: 'Bebas Neue', sans-serif; font-size: 28px; display: block; color: #6e6e6e; letter-spacing: 3px; margin-bottom: 8px; }
 
   /* LOG */
   .log-panel {
     border-top: 1px solid var(--border);
     padding: 8px 16px;
   }
-  .log-header { font-size: 8px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+  .log-header { font-size: 12px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
   .log-entry {
-    font-size: 10px; color: var(--muted);
+    font-size: 12px; color: var(--muted);
     padding: 2px 0;
     border-bottom: 1px solid var(--surface2);
     display: flex; gap: 10px;
   }
   .log-time { color: var(--mode-color); flex-shrink: 0; }
-  .log-empty { font-size: 10px; color: var(--surface2); font-style: italic; }
+  .log-empty { font-size: 12px; color: var(--muted); font-style: italic; }
 
   .history-section { border-top: 1px solid var(--border); }
   .history-chart {
@@ -467,8 +471,8 @@
   }
   .hbar-col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; }
   .hbar-fill { width: 100%; background: var(--work-color); border-radius: 2px 2px 0 0; min-height: 2px; transition: height .3s; }
-  .hbar-count { font-size: 8px; color: var(--muted); margin-top: 2px; height: 10px; }
-  .hbar-label { font-size: 8px; color: var(--muted); letter-spacing: 1px; }
+  .hbar-count { font-size: 11px; color: var(--muted); margin-top: 2px; height: 14px; }
+  .hbar-label { font-size: 11px; color: var(--muted); letter-spacing: 1px; }
 
   /* NOTIFY */
   .notify {
@@ -494,7 +498,7 @@
     border-left: 3px solid var(--accent2);
     border-radius: var(--radius);
     padding: 10px 14px;
-    font-size: 11px; color: var(--text);
+    font-size: 12px; color: var(--text);
     display: flex; align-items: center; gap: 10px;
     opacity: 0; transition: all .3s;
     z-index: 99; pointer-events: none;
@@ -505,6 +509,20 @@
     background: none; border: none; color: var(--muted);
     cursor: pointer; font-size: 16px; flex-shrink: 0;
     -webkit-tap-highlight-color: transparent;
+  }
+
+  /* ── ACCESSIBILITY ── */
+  button:focus-visible, input:focus-visible, textarea:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
   }
 
   /* DESKTOP: side-by-side layout */
@@ -552,12 +570,12 @@
 
   <div class="mode-tabs" id="modeTabs">
     <button class="mode-tab active" data-mode="work">Work</button>
-    <button class="mode-tab" data-mode="short">Short Brk</button>
-    <button class="mode-tab" data-mode="long">Long Brk</button>
+    <button class="mode-tab" data-mode="short" aria-label="Short break">Short Brk</button>
+    <button class="mode-tab" data-mode="long" aria-label="Long break">Long Brk</button>
   </div>
 
   <div class="clock-container">
-    <svg class="clock-svg" viewBox="0 0 280 280">
+    <svg class="clock-svg" viewBox="0 0 280 280" aria-hidden="true">
       <circle class="clock-track" cx="140" cy="140" r="122"/>
       <circle class="clock-progress" id="clockRing" cx="140" cy="140" r="122"
         stroke-dasharray="766.5" stroke-dashoffset="0"/>
@@ -568,13 +586,13 @@
     </div>
   </div>
 
-  <div class="session-dots" id="sessionDots"></div>
+  <div class="session-dots" id="sessionDots" aria-hidden="true"></div>
 
   <div class="controls">
     <button class="btn btn-ghost" onclick="resetTimer()">↺ Reset</button>
     <button class="btn btn-primary" id="btnStart" onclick="toggleTimer()">START</button>
     <button class="btn btn-ghost" onclick="skipSession()">Skip →</button>
-    <button class="btn btn-ghost" id="btnSound" onclick="toggleSound()" title="Toggle sound">♪</button>
+    <button class="btn btn-ghost" id="btnSound" onclick="toggleSound()" title="Toggle sound" aria-label="Toggle sound" aria-pressed="true">♪</button>
   </div>
 
   <div class="current-task-block">
@@ -584,15 +602,15 @@
 
   <div class="settings-row">
     <div class="setting-block">
-      <label>Work</label>
+      <label for="setWork">Work</label>
       <input type="number" id="setWork" value="25" min="1" max="90" onchange="updateSettings()">
     </div>
     <div class="setting-block">
-      <label>Short Brk</label>
+      <label for="setShort">Short Brk</label>
       <input type="number" id="setShort" value="5" min="1" max="30" onchange="updateSettings()">
     </div>
     <div class="setting-block">
-      <label>Long Brk</label>
+      <label for="setLong">Long Brk</label>
       <input type="number" id="setLong" value="15" min="1" max="60" onchange="updateSettings()">
     </div>
   </div>
@@ -608,13 +626,13 @@
 
   <div class="add-task-row">
     <input class="add-task-input" id="taskInput" type="text" placeholder="Add a task…" maxlength="60"
-      onkeydown="if(event.key==='Enter') addTask()">
+      aria-label="New task name" onkeydown="if(event.key==='Enter') addTask()">
     <div class="pomo-stepper">
-      <button class="pomo-step-btn" onclick="stepPomo(-1)" tabindex="-1">−</button>
-      <input class="pomo-count-input" id="pomoInput" type="number" step="1" min="1" max="20" value="1" title="Pomodoros">
-      <button class="pomo-step-btn" onclick="stepPomo(1)" tabindex="-1">+</button>
+      <button class="pomo-step-btn" onclick="stepPomo(-1)" tabindex="-1" aria-hidden="true">−</button>
+      <input class="pomo-count-input" id="pomoInput" type="number" step="1" min="1" max="20" value="1" title="Pomodoros" aria-label="Pomodoro estimate">
+      <button class="pomo-step-btn" onclick="stepPomo(1)" tabindex="-1" aria-hidden="true">+</button>
     </div>
-    <button class="btn btn-primary" style="padding:9px 14px;font-size:11px;" onclick="addTask()">+</button>
+    <button class="btn btn-primary" style="padding:9px 14px;font-size:12px;" onclick="addTask()" aria-label="Add task">+</button>
   </div>
 
   <div class="tasks-scroll">
@@ -637,19 +655,19 @@
 <!-- BOTTOM NAV (mobile only) -->
 <nav class="tab-nav">
   <button class="tab-nav-btn active" id="navTimer" onclick="switchTab('timer')">
-    <span class="nav-icon">⏱</span>Timer
+    <span class="nav-icon" aria-hidden="true">⏱</span>Timer
   </button>
   <button class="tab-nav-btn" id="navTasks" onclick="switchTab('tasks')">
-    <span class="nav-icon">📋</span>Tasks
+    <span class="nav-icon" aria-hidden="true">📋</span>Tasks
   </button>
 </nav>
 
-<div class="day-banner" id="dayBanner">
+<div class="day-banner" id="dayBanner" role="status">
   <span class="day-banner-text"></span>
-  <button class="day-banner-close" onclick="this.parentElement.classList.remove('show')">×</button>
+  <button class="day-banner-close" onclick="this.parentElement.classList.remove('show')" aria-label="Dismiss message">×</button>
 </div>
 
-<div class="notify" id="notify">
+<div class="notify" id="notify" role="status">
   <div class="notify-title" id="notifyTitle">Break time!</div>
   <div id="notifyBody">Good work. Take a breather.</div>
 </div>
@@ -1008,7 +1026,7 @@ function renderTasks() {
       + '<div class="task-info">'
       + nameEl
       + '<div class="task-pomo-info"><div class="mini-dots">' + dots + '</div><span>' + t.pomoDone + '/' + t.pomoEstimate + ' pomo</span></div>'
-      + '<button class="task-notes-toggle" onclick="toggleNotes(' + t.id + ', event)">'
+      + '<button class="task-notes-toggle" onclick="toggleNotes(' + t.id + ', event)" aria-expanded="' + (t._notesOpen ? 'true' : 'false') + '">'
       + (t.notes ? '▾ note' : '▸ note') + '</button>'
       + (t._notesOpen
           ? '<textarea class="task-notes-area" onchange="saveNote(' + t.id + ', this.value)"'
@@ -1016,7 +1034,7 @@ function renderTasks() {
             + escHtml(t.notes || '') + '</textarea>'
           : '')
       + '</div>'
-      + '<button class="task-delete" onclick="deleteTask(' + t.id + ', event)" title="Remove">×</button>'
+      + '<button class="task-delete" onclick="deleteTask(' + t.id + ', event)" title="Remove" aria-label="Delete task">×</button>'
       + '</div>';
   }).join('');
   if (state.editingTaskId !== null) {
@@ -1243,7 +1261,9 @@ function playBeep(freq, duration) {
 }
 function toggleSound() {
   state.soundEnabled = !state.soundEnabled;
-  document.getElementById('btnSound').style.opacity = state.soundEnabled ? '1' : '0.35';
+  const btn = document.getElementById('btnSound');
+  btn.style.opacity = state.soundEnabled ? '1' : '0.35';
+  btn.setAttribute('aria-pressed', state.soundEnabled);
   saveState();
 }
 function notify(title, body) {
@@ -1286,6 +1306,7 @@ renderStats();
 renderHistory();
 initDragDrop();
 document.getElementById('btnSound').style.opacity = state.soundEnabled ? '1' : '0.35';
+document.getElementById('btnSound').setAttribute('aria-pressed', state.soundEnabled);
 updateNewDayButton();
 if (notificationsSupported() && Notification.permission === 'default') {
   Notification.requestPermission();
