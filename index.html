@@ -681,15 +681,15 @@
   <div class="settings-row ambient-fade">
     <div class="setting-block">
       <label for="setWork">Work</label>
-      <input type="number" id="setWork" value="25" min="1" max="90" onchange="updateSettings()">
+      <input type="number" id="setWork" value="25" min="1" max="90" autocomplete="off" onchange="updateSettings()">
     </div>
     <div class="setting-block">
       <label for="setShort">Short Brk</label>
-      <input type="number" id="setShort" value="5" min="1" max="30" onchange="updateSettings()">
+      <input type="number" id="setShort" value="5" min="1" max="30" autocomplete="off" onchange="updateSettings()">
     </div>
     <div class="setting-block">
       <label for="setLong">Long Brk</label>
-      <input type="number" id="setLong" value="15" min="1" max="60" onchange="updateSettings()">
+      <input type="number" id="setLong" value="15" min="1" max="60" autocomplete="off" onchange="updateSettings()">
     </div>
   </div>
 
@@ -704,10 +704,10 @@
 
   <div class="add-task-row ambient-fade">
     <input class="add-task-input" id="taskInput" type="text" placeholder="Add a task…" maxlength="60"
-      aria-label="New task name" onkeydown="if(event.key==='Enter') addTask()">
+      aria-label="New task name" autocomplete="off" onkeydown="if(event.key==='Enter') addTask()">
     <div class="pomo-stepper">
       <button class="pomo-step-btn" onclick="stepPomo(-1)" tabindex="-1" aria-hidden="true">−</button>
-      <input class="pomo-count-input" id="pomoInput" type="number" step="1" min="1" max="20" value="1" title="Pomodoros" aria-label="Pomodoro estimate">
+      <input class="pomo-count-input" id="pomoInput" type="number" step="1" min="1" max="20" value="1" title="Pomodoros" aria-label="Pomodoro estimate" autocomplete="off">
       <button class="pomo-step-btn" onclick="stepPomo(1)" tabindex="-1" aria-hidden="true">+</button>
     </div>
     <button class="btn btn-primary" style="padding:9px 14px;font-size:12px;" onclick="addTask()" aria-label="Add task">+</button>
