@@ -922,10 +922,14 @@ document.addEventListener('visibilitychange', () => {
 // ── AMBIENT SLEEP ──
 // After AMBIENT_IDLE_MS without interaction during a running session,
 // fade the UI down to just the dimmed timer ring (see .ambient-fade CSS).
-// Faded elements are pointer-events:none, so the waking tap can never
-// accidentally activate a hidden control.
+// The gesture that wakes the app removes the .ambient class, which re-enables
+// the buttons mid-press — so the trailing click of that same gesture would
+// otherwise activate whatever was tapped. We swallow exactly that one click
+// (see swallowWakeClick below) so the waking tap only wakes; the next tap acts.
 const AMBIENT_IDLE_MS = 60000;
 let ambientTimer = null;
+let swallowWakeClick = false;
+let swallowTimer = null;
 function armAmbient() {
   clearTimeout(ambientTimer);
   if (!state.running) return;
@@ -935,12 +939,30 @@ function disarmAmbient() {
   clearTimeout(ambientTimer);
   document.body.classList.remove('ambient');
 }
+function wakeFromAmbient(e) {
+  const wasAmbient = document.body.classList.contains('ambient');
+  document.body.classList.remove('ambient');
+  armAmbient();
+  // Only press-type events produce a click; scroll/move (pointermove, wheel)
+  // must not arm the swallow or they'd eat a later, legitimate click.
+  if (wasAmbient && (e.type === 'pointerdown' || e.type === 'touchstart' || e.type === 'keydown')) {
+    swallowWakeClick = true;
+    clearTimeout(swallowTimer);
+    swallowTimer = setTimeout(() => { swallowWakeClick = false; }, 700);
+  }
+}
 ['pointerdown', 'pointermove', 'keydown', 'touchstart', 'wheel'].forEach(ev =>
-  document.addEventListener(ev, () => {
-    document.body.classList.remove('ambient');
-    armAmbient();
-  }, { capture: true, passive: true })
+  document.addEventListener(ev, wakeFromAmbient, { capture: true, passive: true })
 );
+// Consume the click belonging to the waking gesture, then clear the flag so
+// the user's next deliberate tap behaves normally.
+document.addEventListener('click', e => {
+  if (!swallowWakeClick) return;
+  swallowWakeClick = false;
+  clearTimeout(swallowTimer);
+  e.stopPropagation();
+  e.preventDefault();
+}, { capture: true });
 
 // ── TIMER ──
 // Reflect timer state on <body> so CSS can drive the ambient glow.
