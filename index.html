@@ -970,6 +970,7 @@ function requestImmersive() {
   try {
     const el = document.documentElement;
     if (document.fullscreenElement) return;
+    if (!window.matchMedia('(pointer: coarse)').matches) return;
     const req = el.requestFullscreen || el.webkitRequestFullscreen;
     if (req) req.call(el).catch(() => {});
   } catch (e) {}
