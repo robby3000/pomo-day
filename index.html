@@ -524,7 +524,7 @@
 
   /* NOTIFY */
   .notify {
-    position: fixed; top: 12px; left: 50%; transform: translateX(-50%) translateY(-6px);
+    position: fixed; top: calc(12px + env(safe-area-inset-top)); left: 50%; transform: translateX(-50%) translateY(-6px);
     background: var(--surface);
     border: 1px solid var(--mode-color);
     border-radius: var(--radius);
@@ -955,6 +955,8 @@ function startTimer() {
   syncAmbient();
   acquireWakeLock();
   armAmbient();
+  // Unlock AudioContext on user gesture so beeps can play later
+  getAudioCtx();
 }
 function pauseTimer() {
   state.running = false;
