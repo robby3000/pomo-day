@@ -1,5 +1,5 @@
 // Service Worker for Pomo/Day PWA
-const CACHE = 'pomo-day-v5.6';
+const CACHE = 'pomo-day-v5.7';
 const FONT_CACHE = 'pomo-day-fonts-v1';
 
 const PRECACHE_URLS = [
@@ -39,7 +39,13 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // Everything else — cache-first
+  // HTML (index.html) and manifest.json — network-first
+  if (url.pathname.endsWith('.html') || url.pathname.endsWith('.json')) {
+    event.respondWith(networkFirst(event.request, CACHE));
+    return;
+  }
+
+  // Everything else (icons, etc.) — cache-first
   event.respondWith(cacheFirst(event.request, CACHE));
 });
 
@@ -50,6 +56,19 @@ async function cacheFirst(request, cacheName) {
   const cache = await caches.open(cacheName);
   cache.put(request, response.clone());
   return response;
+}
+
+async function networkFirst(request, cacheName) {
+  try {
+    const response = await fetch(request);
+    const cache = await caches.open(cacheName);
+    cache.put(request, response.clone());
+    return response;
+  } catch (e) {
+    const cached = await caches.match(request);
+    if (cached) return cached;
+    throw e;
+  }
 }
 
 async function staleWhileRevalidate(request, cacheName) {
