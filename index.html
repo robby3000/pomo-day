@@ -983,19 +983,6 @@ function startTimer() {
   armAmbient();
   // Unlock AudioContext on user gesture so beeps can play later
   getAudioCtx();
-  // Go immersive in a plain browser tab too (no-op for installed PWA / iOS)
-  requestImmersive();
-}
-// Hide browser + system chrome on supported tabs. Must run from a user
-// gesture (the START tap). Silently no-ops where unsupported (e.g. iOS Safari).
-function requestImmersive() {
-  try {
-    const el = document.documentElement;
-    if (document.fullscreenElement) return;
-    if (!window.matchMedia('(pointer: coarse)').matches) return;
-    const req = el.requestFullscreen || el.webkitRequestFullscreen;
-    if (req) req.call(el).catch(() => {});
-  } catch (e) {}
 }
 function pauseTimer() {
   state.running = false;
