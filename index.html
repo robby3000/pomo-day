@@ -573,6 +573,11 @@
     pointer-events: none;
     transition: opacity 2s, visibility 2s;
   }
+  body { transition: background 2s, background-image 2s; }
+  body.ambient {
+    background: #000;
+    background-image: none;
+  }
   .clock-container { transition: opacity .25s; }
   body.ambient .clock-container {
     opacity: .3;
