@@ -704,7 +704,7 @@
 
   <div class="add-task-row ambient-fade">
     <input class="add-task-input" id="taskInput" type="text" placeholder="Add a task…" maxlength="60"
-      aria-label="New task name" autocomplete="off" onkeydown="if(event.key==='Enter') addTask()">
+      aria-label="New task name" autocomplete="off" readonly onkeydown="if(event.key==='Enter') addTask()">
     <div class="pomo-stepper">
       <button class="pomo-step-btn" onclick="stepPomo(-1)" tabindex="-1" aria-hidden="true">−</button>
       <input class="pomo-count-input" id="pomoInput" type="number" step="1" min="1" max="20" value="1" title="Pomodoros" aria-label="Pomodoro estimate" autocomplete="off">
@@ -1529,6 +1529,18 @@ function escHtml(s) {
   return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+// ── AUTOFILL SUPPRESSION ──
+// Chromium on Android ignores autocomplete="off" and shows the system autofill
+// bar (password/card/address) on the task field, which can mis-position over the
+// form. The autofill framework skips readonly fields, so the input is readonly at
+// rest; we drop readonly on focus so the user can type, and restore it on blur.
+function suppressTaskAutofill() {
+  const el = document.getElementById('taskInput');
+  if (!el) return;
+  el.addEventListener('focus', () => el.removeAttribute('readonly'));
+  el.addEventListener('blur', () => el.setAttribute('readonly', ''));
+}
+
 // ── INIT ──
 loadState();
 checkDailyReset();
@@ -1545,6 +1557,7 @@ renderStats();
 renderHistory();
 initDragDrop();
 initScrubDials();
+suppressTaskAutofill();
 document.getElementById('btnSound').style.opacity = state.soundEnabled ? '1' : '0.35';
 document.getElementById('btnSound').setAttribute('aria-pressed', state.soundEnabled);
 updateNewDayButton();
