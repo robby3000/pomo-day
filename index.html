@@ -790,6 +790,7 @@ let state = {
 let timer = null;
 let timerStartedAt = null;
 let secondsAtStart = null;
+let lastFocusMin = 0;
 let dragSrcId = null;
 const CIRCUMFERENCE = 2 * Math.PI * 122;
 
@@ -980,6 +981,7 @@ function toggleTimer() {
 function startTimer() {
   timerStartedAt = Date.now();
   secondsAtStart = state.seconds;
+  lastFocusMin = 0;
   state.running = true;
   document.getElementById('btnStart').textContent = 'PAUSE';
   timer = setInterval(tick, 500);
@@ -1023,6 +1025,15 @@ function tick() {
     }
   }
   state.seconds = remaining;
+  // Increment FOCUS every minute during work sessions
+  if (state.mode === 'work') {
+    const currentFocusMin = Math.floor(elapsed / 60);
+    if (currentFocusMin > lastFocusMin) {
+      state.totalFocusMin = (state.totalFocusMin || 0) + 1;
+      lastFocusMin = currentFocusMin;
+      renderStats();
+    }
+  }
   renderClock();
 }
 // Credit a pomo to every task that has met the 60% threshold this session.
@@ -1036,7 +1047,14 @@ function creditPomoIfEarned() {
       if (t) { t.pomoDone++; credited = true; }
     }
   });
-  if (credited) renderTasks();
+  if (credited) {
+    state.sessionsCompleted++;
+    const today = new Date().toDateString();
+    state.history[today] = (state.history[today] || 0) + 1;
+    renderTasks();
+    renderStats();
+    renderHistory();
+  }
   return credited;
 }
 
@@ -1048,11 +1066,7 @@ function onSessionEnd(skipped) {
       creditPomoIfEarned();
     } else {
       playBeep(880, 0.6);
-      state.sessionsCompleted++;
       state.sessionInCycle++;
-      state.totalFocusMin += getSettings().work;
-      const today = new Date().toDateString();
-      state.history[today] = (state.history[today] || 0) + 1;
       addLog('Completed work session');
       creditPomoIfEarned();
     }
@@ -1428,17 +1442,11 @@ function checkDailyReset() {
 function startNewDay() {
   const today = new Date().toDateString();
   const donePrev = state.tasks.filter(t => t.done).length;
-  let sessPrev = state.sessionsCompleted;
+  const sessPrev = state.sessionsCompleted;
 
   if (state.running && state.mode === 'work') {
-    const elapsedMin = Math.floor((state.totalSeconds - state.seconds) / 60);
-    if (elapsedMin > 0) {
-      state.totalFocusMin += elapsedMin;
-      sessPrev++;
-      const prevDate = state.lastDate || today;
-      state.history[prevDate] = (state.history[prevDate] || 0) + 1;
-      addLog('Credited partial session to previous day');
-    }
+    // Credit any partial session that met the threshold
+    creditPomoIfEarned();
     pauseTimer();
   }
 
