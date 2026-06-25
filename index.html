@@ -12,7 +12,8 @@
 <!-- Theme colour (browser chrome on Android) -->
 <meta name="theme-color" content="#e8ff47">
 
-<!-- iOS home screen support -->
+<!-- Home screen / standalone support -->
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Pomo/Day">
@@ -1393,6 +1394,49 @@ function renderHistory() {
   }).join('');
 }
 
+// ── PERSISTENCE ──
+// IndexedDB is the primary store: on iOS/WebKit it is treated as durable and is
+// what navigator.storage.persist() protects from eviction, unlike localStorage
+// which is among the first things cleared after periods of inactivity. We keep a
+// localStorage mirror as a secondary backup and for migrating existing users.
+const STATE_KEY = 'pomoday_state';
+const DB_NAME = 'pomoday';
+const DB_STORE = 'state';
+let _dbPromise = null;
+
+function openDB() {
+  if (_dbPromise) return _dbPromise;
+  _dbPromise = new Promise((resolve, reject) => {
+    if (!('indexedDB' in window)) { reject(new Error('IndexedDB unavailable')); return; }
+    const req = indexedDB.open(DB_NAME, 1);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains(DB_STORE)) db.createObjectStore(DB_STORE);
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+  return _dbPromise;
+}
+
+function idbGet(key) {
+  return openDB().then(db => new Promise((resolve, reject) => {
+    const tx = db.transaction(DB_STORE, 'readonly');
+    const req = tx.objectStore(DB_STORE).get(key);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  }));
+}
+
+function idbSet(key, value) {
+  return openDB().then(db => new Promise((resolve, reject) => {
+    const tx = db.transaction(DB_STORE, 'readwrite');
+    tx.objectStore(DB_STORE).put(value, key);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  }));
+}
+
 function saveState() {
   const s = getSettings();
   const toSave = {
@@ -1406,30 +1450,54 @@ function saveState() {
     history: state.history,
     settings: { work: s.work, short: s.short, long: s.long }
   };
-  localStorage.setItem('pomoday_state', JSON.stringify(toSave));
+  // Primary durable store.
+  idbSet(STATE_KEY, toSave).catch(e => console.warn('IndexedDB save failed:', e));
+  // Secondary mirror / legacy fallback.
+  try {
+    localStorage.setItem(STATE_KEY, JSON.stringify(toSave));
+  } catch (e) {
+    console.warn('localStorage save failed:', e);
+  }
 }
 
-function loadState() {
-  try {
-    const raw = localStorage.getItem('pomoday_state');
-    if (!raw) return;
-    const saved = JSON.parse(raw);
-    state.tasks = (saved.tasks || []).map(t => ({ notes: '', ...t }));
-    state.sessionsCompleted = saved.sessionsCompleted || 0;
-    state.totalFocusMin = saved.totalFocusMin || 0;
-    state.sessionInCycle = saved.sessionInCycle || 0;
-    state.log = saved.log || [];
-    state.lastDate = saved.lastDate || null;
-    state.soundEnabled = saved.soundEnabled !== undefined ? saved.soundEnabled : true;
-    state.history = saved.history || {};
-    if (saved.settings) {
-      document.getElementById('setWork').value = saved.settings.work || 25;
-      document.getElementById('setShort').value = saved.settings.short || 5;
-      document.getElementById('setLong').value = saved.settings.long || 15;
-    }
-  } catch (e) {
-    console.warn('Could not restore state:', e);
+function applyLoaded(saved) {
+  state.tasks = (saved.tasks || []).map(t => ({ notes: '', ...t }));
+  state.sessionsCompleted = saved.sessionsCompleted || 0;
+  state.totalFocusMin = saved.totalFocusMin || 0;
+  state.sessionInCycle = saved.sessionInCycle || 0;
+  state.log = saved.log || [];
+  state.lastDate = saved.lastDate || null;
+  state.soundEnabled = saved.soundEnabled !== undefined ? saved.soundEnabled : true;
+  state.history = saved.history || {};
+  if (saved.settings) {
+    document.getElementById('setWork').value = saved.settings.work || 25;
+    document.getElementById('setShort').value = saved.settings.short || 5;
+    document.getElementById('setLong').value = saved.settings.long || 15;
   }
+}
+
+async function loadState() {
+  let saved = null;
+  // Prefer IndexedDB (durable).
+  try {
+    saved = await idbGet(STATE_KEY);
+  } catch (e) {
+    console.warn('IndexedDB load failed, falling back to localStorage:', e);
+  }
+  // Fall back to / migrate from the legacy localStorage copy.
+  let fromLegacy = false;
+  if (!saved) {
+    try {
+      const raw = localStorage.getItem(STATE_KEY);
+      if (raw) { saved = JSON.parse(raw); fromLegacy = true; }
+    } catch (e) {
+      console.warn('Could not restore state:', e);
+    }
+  }
+  if (!saved) return;
+  applyLoaded(saved);
+  // One-time migration: seed IndexedDB from the legacy localStorage data.
+  if (fromLegacy) idbSet(STATE_KEY, saved).catch(e => console.warn('IndexedDB migration failed:', e));
 }
 
 function checkDailyReset() {
@@ -1542,25 +1610,38 @@ function suppressTaskAutofill() {
 }
 
 // ── INIT ──
-loadState();
-checkDailyReset();
-updateSettings(); // sync timer with saved durations, not the hardcoded defaults
-applyCircadianAccent();
-setInterval(applyCircadianAccent, 60000);
-applyColor(COLORS[state.mode]);
-syncAmbient();
-renderClock();
-renderDots();
-renderTasks();
-renderLog();
-renderStats();
-renderHistory();
-initDragDrop();
-initScrubDials();
-suppressTaskAutofill();
-document.getElementById('btnSound').style.opacity = state.soundEnabled ? '1' : '0.35';
-document.getElementById('btnSound').setAttribute('aria-pressed', state.soundEnabled);
-updateNewDayButton();
+// loadState() is async (IndexedDB), so the whole startup sequence must await it
+// before rendering, otherwise the UI would paint the empty default state first.
+(async function init() {
+  // Ask the OS to mark our storage as persistent so IndexedDB isn't evicted
+  // after inactivity — the root cause of data loss on iOS/WebKit PWAs.
+  if (navigator.storage && navigator.storage.persist) {
+    try {
+      const already = navigator.storage.persisted ? await navigator.storage.persisted() : false;
+      const granted = already || await navigator.storage.persist();
+      console.info('Persistent storage granted:', granted);
+    } catch (e) { /* non-fatal */ }
+  }
+  await loadState();
+  checkDailyReset();
+  updateSettings(); // sync timer with saved durations, not the hardcoded defaults
+  applyCircadianAccent();
+  setInterval(applyCircadianAccent, 60000);
+  applyColor(COLORS[state.mode]);
+  syncAmbient();
+  renderClock();
+  renderDots();
+  renderTasks();
+  renderLog();
+  renderStats();
+  renderHistory();
+  initDragDrop();
+  initScrubDials();
+  suppressTaskAutofill();
+  document.getElementById('btnSound').style.opacity = state.soundEnabled ? '1' : '0.35';
+  document.getElementById('btnSound').setAttribute('aria-pressed', state.soundEnabled);
+  updateNewDayButton();
+})();
 
 // SERVICE WORKER
 if ('serviceWorker' in navigator) {
