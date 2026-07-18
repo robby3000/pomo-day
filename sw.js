@@ -1,5 +1,5 @@
 // Service Worker for Pomo/Day PWA
-const CACHE = 'pomo-day-v5.9';
+const CACHE = 'pomo-day-v6.0';
 const FONT_CACHE = 'pomo-day-fonts-v1';
 
 const PRECACHE_URLS = [

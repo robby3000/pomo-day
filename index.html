@@ -636,6 +636,7 @@
     .tasks-page { grid-row: 2; grid-column: 2; overflow: hidden; }
   }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/dexie@4/dist/dexie.min.js"></script>
 </head>
 <body>
 
@@ -1400,41 +1401,18 @@ function renderHistory() {
 // which is among the first things cleared after periods of inactivity. We keep a
 // localStorage mirror as a secondary backup and for migrating existing users.
 const STATE_KEY = 'pomoday_state';
-const DB_NAME = 'pomoday';
-const DB_STORE = 'state';
-let _dbPromise = null;
 
-function openDB() {
-  if (_dbPromise) return _dbPromise;
-  _dbPromise = new Promise((resolve, reject) => {
-    if (!('indexedDB' in window)) { reject(new Error('IndexedDB unavailable')); return; }
-    const req = indexedDB.open(DB_NAME, 1);
-    req.onupgradeneeded = () => {
-      const db = req.result;
-      if (!db.objectStoreNames.contains(DB_STORE)) db.createObjectStore(DB_STORE);
-    };
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
-  });
-  return _dbPromise;
-}
+let idbSet, idbGet;
+if (typeof Dexie !== 'undefined') {
+  const db = new Dexie('pomoday');
+  db.version(1).stores({ kv: '' });
+  db.on('versionchange', () => db.close());
 
-function idbGet(key) {
-  return openDB().then(db => new Promise((resolve, reject) => {
-    const tx = db.transaction(DB_STORE, 'readonly');
-    const req = tx.objectStore(DB_STORE).get(key);
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
-  }));
-}
-
-function idbSet(key, value) {
-  return openDB().then(db => new Promise((resolve, reject) => {
-    const tx = db.transaction(DB_STORE, 'readwrite');
-    tx.objectStore(DB_STORE).put(value, key);
-    tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error);
-  }));
+  idbSet = function(key, value) { return db.kv.put(value, key); };
+  idbGet = function(key) { return db.kv.get(key); };
+} else {
+  idbSet = function() { return Promise.resolve(); };
+  idbGet = function() { return Promise.resolve(undefined); };
 }
 
 function saveState() {
@@ -1451,7 +1429,10 @@ function saveState() {
     settings: { work: s.work, short: s.short, long: s.long }
   };
   // Primary durable store.
-  idbSet(STATE_KEY, toSave).catch(e => console.warn('IndexedDB save failed:', e));
+  idbSet(STATE_KEY, toSave).catch(e => {
+    console.warn('Dexie save failed:', e);
+    notify('Save failed', 'Storage is full or blocked — your latest change may not persist.');
+  });
   // Secondary mirror / legacy fallback.
   try {
     localStorage.setItem(STATE_KEY, JSON.stringify(toSave));
@@ -1619,7 +1600,10 @@ function suppressTaskAutofill() {
     try {
       const already = navigator.storage.persisted ? await navigator.storage.persisted() : false;
       const granted = already || await navigator.storage.persist();
-      console.info('Persistent storage granted:', granted);
+      console.info('Persistent storage:', granted);
+      if (!granted) {
+        notify('Storage not protected', 'Enable "Add to Home Screen" / keep this app installed so iOS does not clear your data.');
+      }
     } catch (e) { /* non-fatal */ }
   }
   await loadState();
