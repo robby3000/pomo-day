@@ -1,7 +1,7 @@
 {
   "name": "Pomo / Day Planner",
   "short_name": "Pomo/Day",
-  "version": "6.1",
+  "version": "6.2",
   "description": "Pomodoro timer with daily task planning.",
   "id": "/pomo-day/",
   "start_url": "/pomo-day/",

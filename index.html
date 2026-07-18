@@ -1487,10 +1487,11 @@ async function loadState() {
       console.warn('Could not restore state:', e);
     }
   }
-  if (!saved) return;
+  if (!saved) return false;
   applyLoaded(saved);
   // One-time migration: seed IndexedDB from the legacy localStorage data.
   if (fromLegacy) idbSet(STATE_KEY, saved).catch(e => console.warn('IndexedDB migration failed:', e));
+  return true;
 }
 
 function checkDailyReset() {
@@ -1607,18 +1608,22 @@ function suppressTaskAutofill() {
 // before rendering, otherwise the UI would paint the empty default state first.
 (async function init() {
   // Ask the OS to mark our storage as persistent so IndexedDB isn't evicted
-  // after inactivity — the root cause of data loss on iOS/WebKit PWAs.
+  // after inactivity — the root cause of data loss on iOS/WebKit and Android
+  // Chrome PWAs. We request it up front so the grant is in place before the
+  // first save, but only warn the user if they actually have data to lose
+  // (i.e. this is not a first launch).
+  let persistGranted = true;
   if (navigator.storage && navigator.storage.persist) {
     try {
       const already = navigator.storage.persisted ? await navigator.storage.persisted() : false;
-      const granted = already || await navigator.storage.persist();
-      console.info('Persistent storage:', granted);
-      if (!granted) {
-        notify('Storage not protected', 'Enable "Add to Home Screen" / keep this app installed so iOS does not clear your data.');
-      }
+      persistGranted = already || await navigator.storage.persist();
+      console.info('Persistent storage:', persistGranted);
     } catch (e) { /* non-fatal */ }
   }
-  await loadState();
+  const hadSavedState = await loadState();
+  if (!persistGranted && hadSavedState) {
+    notify('Storage not protected', 'Install this app to your home screen so your tasks aren\'t cleared by the browser.');
+  }
   checkDailyReset();
   updateSettings(); // sync timer with saved durations, not the hardcoded defaults
   applyCircadianAccent();
