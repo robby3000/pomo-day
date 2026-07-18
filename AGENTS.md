@@ -15,6 +15,7 @@
 - **localStorage**: Use key `'pomoday_state'` for persistence.
 - **Incremental edits**: Use precise `edit` calls. Never rewrite entire `index.html`.
 - **Preserve functionality**: Existing features (timer, tasks, PWA install) must continue working.
+- **Dexie.js exception**: Dexie is loaded via a CDN `<script>` in `<head>` because the no-bundler constraint makes a CDN the only viable way to include the IndexedDB wrapper.
 
 ## Working with CSS
 
