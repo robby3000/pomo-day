@@ -636,7 +636,7 @@
     .tasks-page { grid-row: 2; grid-column: 2; overflow: hidden; }
   }
 </style>
-<script src="https://cdn.jsdelivr.net/npm/dexie@4/dist/dexie.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dexie@4.4.4/dist/dexie.min.js"></script>
 </head>
 <body>
 
@@ -1406,10 +1406,22 @@ let idbSet, idbGet;
 if (typeof Dexie !== 'undefined') {
   const db = new Dexie('pomoday');
   db.version(1).stores({ kv: '' });
-  db.on('versionchange', () => db.close());
+  // On versionchange (e.g. another tab upgrades the schema) Dexie auto-closes.
+  // We reopen lazily on the next read/write so the rest of the session keeps
+  // working instead of rejecting every subsequent save.
+  db.on('versionchange', () => { try { db.close(); } catch (e) {} });
 
-  idbSet = function(key, value) { return db.kv.put(value, key); };
-  idbGet = function(key) { return db.kv.get(key); };
+  function withDb(fn) {
+    if (!db.isOpen()) db.open();
+    return fn(db);
+  }
+
+  idbSet = function(key, value) {
+    return withDb(d => d.kv.put(value, key));
+  };
+  idbGet = function(key) {
+    return withDb(d => d.kv.get(key));
+  };
 } else {
   idbSet = function() { return Promise.resolve(); };
   idbGet = function() { return Promise.resolve(undefined); };
