@@ -6,13 +6,13 @@
 - **CSS location**: All styles inside `<head><style>` block in `index.html`
 - **JS location**: All JavaScript inside `<body><script>`
 - **Tech stack**: Pure vanilla HTML5/CSS3/JS. No frameworks or bundlers.
-- **State**: Global `state` object. Persist via localStorage (`pomoday_state`).
+- **State**: Global `state` object. Persisted to **Dexie/IndexedDB** (`pomoday_state`), with a `localStorage` mirror for migration.
 
 ## Hard Constraints (Do Not Break)
 
 - **Inline CSS/JS**: All CSS and JS stay inside `index.html`. No external `.css` or `.js` files for styling or functionality.
 - **State schema**: Do not rename or remove existing state fields. Add new fields to the `state` object only.
-- **localStorage**: Use key `'pomoday_state'` for persistence.
+- **localStorage**: Use key `'pomoday_state'` for the migration mirror. The primary durable store is Dexie/IndexedDB.
 - **Incremental edits**: Use precise `edit` calls. Never rewrite entire `index.html`.
 - **Preserve functionality**: Existing features (timer, tasks, PWA install) must continue working.
 - **Dexie.js exception**: Dexie is loaded via a CDN `<script>` in `<head>` because the no-bundler constraint makes a CDN the only viable way to include the IndexedDB wrapper.
