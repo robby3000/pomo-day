@@ -710,7 +710,7 @@
   </div>
 
   <div class="add-task-row ambient-fade">
-    <input class="add-task-input" id="taskInput" type="text" placeholder="Add a task…" maxlength="60"
+    <input class="add-task-input" id="taskInput" type="text" placeholder="Add a task…" maxlength="120"
       aria-label="New task name" autocomplete="off" readonly onkeydown="if(event.key==='Enter') addTask()">
     <div class="pomo-stepper">
       <button class="pomo-step-btn" onclick="stepPomo(-1)" tabindex="-1" aria-hidden="true">−</button>
@@ -769,6 +769,7 @@ const BREAK_SUGGESTIONS = [
   'take 5 deep breaths',
   'roll your shoulders back'
 ];
+const MAX_TASK_NAME_LENGTH = 120;
 let _breakSugIdx = 0;
 
 let state = {
@@ -1134,7 +1135,7 @@ function stepPomo(delta) {
 function addTask() {
   const input = document.getElementById('taskInput');
   const pomoIn = document.getElementById('pomoInput');
-  const name = input.value.trim();
+  const name = input.value.trim().slice(0, MAX_TASK_NAME_LENGTH);
   if (!name) return;
   state.tasks.push({ id: Date.now(), name, pomoEstimate: parseInt(pomoIn.value) || 2, pomoDone: 0, done: false, notes: '' });
   input.value = ''; pomoIn.value = '1';
@@ -1196,7 +1197,7 @@ function editTask(id) {
 function commitEdit(id, value) {
   const t = state.tasks.find(t => t.id === id);
   if (!t) return;
-  const trimmed = value.trim();
+  const trimmed = value.trim().slice(0, MAX_TASK_NAME_LENGTH);
   if (trimmed) t.name = trimmed;
   state.editingTaskId = null;
   renderTasks();
@@ -1237,6 +1238,7 @@ function renderTasks() {
       ? '<input class="task-name-edit" value="' + escHtml(t.name) + '"'
         + ' onblur="commitEdit(' + t.id + ', this.value)"'
         + ' onkeydown="if(event.key===\'Enter\')this.blur();if(event.key===\'Escape\'){state.editingTaskId=null;renderTasks();}"'
+        + ' maxlength="120"'
         + ' onclick="event.stopPropagation()">'
       : '<div class="task-name" ondblclick="editTask(' + t.id + ')">' + escHtml(t.name) + '</div>';
     return '<div class="task-item ' + (t.done ? 'done' : '') + ' ' + (t.id === state.activeTaskId ? 'active' : '') + '" draggable="true" data-id="' + t.id + '" onclick="selectTask(' + t.id + ')">'
