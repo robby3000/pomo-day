@@ -1,5 +1,22 @@
 # Pomo/Day — Design Phase Guidelines
 
+## Web front door / canonical install URL (2026-08-20)
+
+- **Canonical PWA install URL:** `https://robby-hermes.tail9a92eb.ts.net/pomo/`
+  (Caddy route `/pomo/*` → `https://127.0.0.1:4327`, path-stripped).
+- Direct (works in browser, but install PWA from `/pomo/` not `:4327`):
+  `https://robby-hermes.tail9a92eb.ts.net:4327/`
+- The app MUST be path-relative (manifest `id`/`start_url`/`scope` = `"./"`,
+  all asset/SW/API URLs relative) so it works under both mounts. As of the
+  front-door fix the app was reported at manifest **v7.6** (path-relative).
+  ⚠️ **Verify on origin:** the v7.6 commit was NOT confirmed on `origin/main`
+  from the WSL2 box as of 2026-08-20 (box saw `f726ef8`); pull/confirm from the
+  Mac before trusting the manifest version here.
+- **Phone gotcha (resolved):** Android WebAPK link-capture ignores ports but
+  respects path prefixes. A PWA installed from `…:4327` claimed the whole host,
+  hijacking Quartz into the Pomo app. Fix: install Pomo from `/pomo/` and
+  remove stale WebAPKs on the phone (Android Settings → Apps → uninstall).
+
 ## Project Structure
 
 - **PWA structure**: `index.html`, `manifest.json`, `sw.js`, `icons/`
