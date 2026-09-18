@@ -469,6 +469,7 @@
     cursor: pointer; padding: 3px 0; margin-top: 3px;
     -webkit-tap-highlight-color: transparent;
   }
+  .task-notes-toggle.has-note { color: var(--accent); }
   .task-notes-area {
     width: 100%; background: var(--surface2);
     border: 1px solid var(--border); border-radius: 2px;
@@ -1246,7 +1247,7 @@ function renderTasks() {
       + '<div class="task-info">'
       + nameEl
       + '<div class="task-pomo-info"><div class="mini-dots">' + dots + '</div><span>' + t.pomoDone + '/' + t.pomoEstimate + ' pomo</span></div>'
-      + '<button class="task-notes-toggle" onclick="toggleNotes(' + t.id + ', event)" aria-expanded="' + (t._notesOpen ? 'true' : 'false') + '">'
+      + '<button class="task-notes-toggle' + (t.notes ? ' has-note' : '') + '" onclick="toggleNotes(' + t.id + ', event)" aria-expanded="' + (t._notesOpen ? 'true' : 'false') + '">'
       + (t.notes ? '▾ note' : '▸ note') + '</button>'
       + (t._notesOpen
           ? '<textarea class="task-notes-area" onchange="saveNote(' + t.id + ', this.value)"'

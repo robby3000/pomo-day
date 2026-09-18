@@ -55,6 +55,23 @@ If changing the color system, update both the `:root` defaults AND the JS that m
 - **Task CRUD** — Add, toggle, delete task operations
 - **PWA essentials** — Manifest link, service worker registration, meta tags
 
+## Service Worker cache policy (mandatory on every visible change)
+
+The PWA precaches its own app shell. The cache stamp is the `CACHE` constant at
+the top of `sw.js` (this repo: `pomo-day-v6.x`; the private WSL2 sync build uses
+its own `pomo-day-v7.x` line).
+
+**Rule: any commit that changes `index.html`, `manifest.json`, or icons MUST
+bump the `CACHE` version in `sw.js` in the same commit.** Skipping the bump
+leaves installed clients (especially Android WebAPKs) on a stale app shell —
+changed markup/CSS/JS will not appear no matter how often the app is reopened.
+(The sibling sync repo hit this on 2026-09-18; history here is also
+inconsistent — e.g. `f726ef8` shipped HTML-only. Do not copy that precedent.)
+
+**Client-side behavior after a bump:** first launch installs the new SW
+(`skipWaiting` + `clients.claim` are already in place); the second launch runs
+the new shell. Swipe away, reopen; if still stale, repeat once.
+
 ## What Can Be Freely Changed
 
 - Colors, fonts, spacing, borders, shadows
